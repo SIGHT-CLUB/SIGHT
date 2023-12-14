@@ -1,0 +1,6 @@
+*motor pwm'ini ani değiştirmek yüksek akım istiyor çünkü backemf küçük kalıyor, kademeli olarak arttıralım
+*boost converter output'u regüle ediyor. input voltajından bağımsız olarak output voltajı sabit kalıyor. eğer input votlajı, set edilen output voltajından büyükse input voltajı output'a yansıyor doğrudan ve kontrol edilmiyor
+*Arduiino başlangıçta built'in ledini yakıp söndürüyor. Bu sayede boot olup olmadığını anlıyoruz
+*powerbanklerde akım az çekilirse otomatik kapanma özelliği olabilir. alınan powerbank'te böyle bir sorun olmadığından emin olunacak 
+*Robotun havada duracağı ve testler yapılacak bi stand hoş olur
+*Testing codelarını commentlemezsek memory yiyorlar çok fazla
