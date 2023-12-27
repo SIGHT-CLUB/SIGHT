@@ -21,9 +21,9 @@ mu3_info(2,7)=3;
 
 
 
-[mu1_all,mu1_info]=searchAlgorithm1(1,mu1_info,targetLocation);
-[mu2_all,mu2_info]=searchAlgorithm1(2,mu2_info,targetLocation);
-[mu3_all,mu3_info]=searchAlgorithm1(3,mu3_info,targetLocation);
+[mu1_moves, mu1_all,mu1_info]=searchAlgorithm2(1,mu1_info,targetLocation);
+[mu2_moves, mu2_all,mu2_info]=searchAlgorithm2(2,mu2_info,targetLocation);
+[mu3_moves, mu3_all,mu3_info]=searchAlgorithm2(3,mu3_info,targetLocation);
 
 disp(mu2_info)
 disp(mu3_info)

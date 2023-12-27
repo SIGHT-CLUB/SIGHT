@@ -1,3 +1,7 @@
+% this function is where the next movement of the unit is determined. it
+% chooses the nearest empty location (if more than one such locationü random 
+% one of them) as the aimed location, then constructs a trajectory to that
+% point. the next move is the frst elent of the trajector.
 function [trajectory_output, aimedPosition_out] = moveee(trajectory_input, currentPosition, mu_info, aimedPosition, avoidPositions)
 
 gridSize = size(mu_info);
@@ -16,7 +20,7 @@ minimumValue = min(distanceM, [], "all");
 [index1, index2] = find(distanceM== minimumValue);
 index = [index1, index2];
 aimedPosition_out = index(randi([1, size(index,1)]),:);
-%aimedPosition_out = index(1,:);
+% aimedPosition_out = index(1,:);
 
 
 trajectory_output = trajectory_maker(currentPosition, aimedPosition_out);

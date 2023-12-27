@@ -19,7 +19,6 @@ function [mu_all,mu_info]=searchAlgorithm1(mu,mu_info,targetPosition)
     currentPosition=[currentRow,currentCol];
     targetRow=targetPosition(1);
     targetCol=targetPosition(2);
-
  
     numberofiterations=55;
     
@@ -70,6 +69,10 @@ function [mu_all,mu_info]=searchAlgorithm1(mu,mu_info,targetPosition)
             
                 
             end
+        % elseif % enters if no empty neighbor is found.
+            
+            
+            
         end
     end
 % If no empty neighbor is found, stay in the current position
