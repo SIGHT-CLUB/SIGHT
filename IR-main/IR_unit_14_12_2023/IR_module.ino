@@ -87,7 +87,7 @@ uint8_t listen_IR() {
   }
 
   //check if transmission is detected
-  if (counter > 5) {
+  if (is_received == 1) {
     delayMicroseconds(TRIGGER_DURATION_US * 1.5);
     unsigned long listen_starts = micros();
     for (uint8_t i = 0; i < (NUMBER_OF_PACKAGE_BYTES * 8); i++) {
