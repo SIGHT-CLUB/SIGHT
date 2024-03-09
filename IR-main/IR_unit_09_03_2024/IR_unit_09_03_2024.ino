@@ -17,8 +17,7 @@ uint8_t mode_of_operation = 0; //0:listen, 1:ping
 unsigned long last_mode_change = 0;
 
 void ping_test() {
-  if mode_of_operation == 0;
-    return;
+  if (mode_of_operation == 0)return;
   Serial.println("Pinging the IR module...");
 
   set_number_of_package_bytes(4);
@@ -66,8 +65,8 @@ void ping_test() {
 }
 
 void listen_test(){
-  if mode_of_operation == 1;
-    return;
+  if (mode_of_operation == 1)return;
+
   unsigned long listen_duration = random(500,2000);
   unsigned long start_time = millis();
 
