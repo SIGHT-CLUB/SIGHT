@@ -87,14 +87,11 @@ void transmit_one() {
 uint8_t listen_IR() {
 
   unsigned long listen_start_time = millis();
-  uint8_t counter = 0;
+  uint8_t is_received = 0;
   while (millis() - listen_start_time < LISTEN_DURATION_MS) {
     if (digitalRead(IR_RECEIVE_PIN) == 0) {
-      delayMicroseconds(BURST_HALF_PERIOD_US);
-      counter = counter + 1;
-      if (counter > 5) {
-        break;
-      }
+      is_received = 1;
+      break;
     }
   }
 
