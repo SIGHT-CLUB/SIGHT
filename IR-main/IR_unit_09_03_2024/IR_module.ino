@@ -107,18 +107,17 @@ uint8_t listen_IR() {
     uint8_t CRC_SIG = CRC_16 >> 8;
     uint8_t CRC_LST = CRC_16 % 256;
     if (IR_module_buffer[NUMBER_OF_PACKAGE_BYTES - 1] == CRC_LST && IR_module_buffer[NUMBER_OF_PACKAGE_BYTES - 2] == CRC_SIG) {
-      for (uint8_t i = 0; i < NUMBER_OF_PACKAGE_BYTES; i++) {
-        Serial.print(IR_module_buffer[i]);
-        Serial.print(' ');
-      }
-      Serial.println();
+      // for (uint8_t i = 0; i < NUMBER_OF_PACKAGE_BYTES; i++) {
+      //   Serial.print(IR_module_buffer[i]);
+      //   Serial.print(' ');
+      // }
+      // Serial.println();
       return 1;  //Package is valid. return 1
     } else {
-      Serial.println("Package corrupted");
+      // Serial.println("Package corrupted");
       return 2;  // CRC check is failed. return 2
     }
   }
-
   return 0;  // No signal is detected. return 0
 }
 
