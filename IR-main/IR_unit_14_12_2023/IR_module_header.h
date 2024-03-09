@@ -6,10 +6,12 @@
 #define IR_RECEIVE_PIN 3
 #define IR_LED 5
 
+//delayMicroseconds() very accurately in the range 3 microseconds and up to 16383. Be careful if you are not in this range
 #define K_NUMBER_OF_BURSTS 60
 #define BURST_HALF_PERIOD_US 13
 #define LISTEN_DURATION_MS 20
 #define TRANSMIT_SLEEP_TIME 20
+
 
 extern uint8_t NUMBER_OF_PACKAGE_BYTES;
 extern unsigned long TRIGGER_DURATION_US;
