@@ -18,7 +18,7 @@ unsigned long last_mode_change = 0;
 
 void ping_test() {
   if (mode_of_operation == 0)return;
-  Serial.println("Pinging the IR module...");
+  Serial.println("\n Pinging the IR module...");
 
   set_number_of_package_bytes(4);
 
@@ -29,7 +29,7 @@ void ping_test() {
   uint8_t intention = 0; //4 bits
   uint8_t ID = 2; //4 bits
 
-  uint8_t first_byte = 5; //x and y position of the robot
+  uint8_t first_byte = x*16 + y; //x and y position of the robot
   uint8_t second_byte = 12; //intention and ID of the robot
 
   //TRANSMIT ---------------
@@ -42,32 +42,39 @@ void ping_test() {
   set_buffer(2, CRC_SIG);
   set_buffer(3, CRC_LST);
   
+  unsigned int current_time = millis()/1000;
+  
   transmit_buffer(); 
 
-  uint8_t listening_result = listen_IR(); //listens for 20ms. 0:no package, 1:successful package, 2:corrupted package
-
-  if (listening_result != 0){
-    set_buffer(0, 12);
-    set_buffer(1, 38);
-
-    uint16_t CRC_16 = generate_CRC_16_bit();
-    uint8_t CRC_SIG = CRC_16 >> 8;
-    uint8_t CRC_LST = CRC_16 % 256;
-    set_buffer(2, CRC_SIG);
-    set_buffer(3, CRC_LST);
-    transmit_buffer();
-  }
-
-  long delay_after_ping = random(20, 100);
-  delay(delay_after_ping);
+  // long delay_after_ping = random(20, 100);
+  // delay(delay_after_ping);
   mode_of_operation = 0;
+
+  // uint8_t listening_result = listen_IR(); //listens for 20ms. 0:no package, 1:successful package, 2:corrupted package
+
+  // if (listening_result != 0){
+  //   set_buffer(0, 12);
+  //   set_buffer(1, 38);
+
+  //   uint16_t CRC_16 = generate_CRC_16_bit();
+  //   uint8_t CRC_SIG = CRC_16 >> 8;
+  //   uint8_t CRC_LST = CRC_16 % 256;
+  //   set_buffer(2, CRC_SIG);
+  //   set_buffer(3, CRC_LST);
+  //   transmit_buffer();
+  // }
 
 }
 
 void listen_test(){
   if (mode_of_operation == 1)return;
 
-  unsigned long listen_duration = random(500,2000);
+  unsigned long listen_duration = random(500,600);
+
+  // Serial.println("\nThe random number is: ");
+  // Serial.println(random(1000,2000));
+
+  Serial.println("\n Currently Listening...");
   unsigned long start_time = millis() ;
 
   while(millis() - start_time < listen_duration){
@@ -89,8 +96,6 @@ void listen_test(){
     }
   }
   mode_of_operation = 1;
-
-  
 
   //check for ping (intention check)
   //if ping is received, send a ping back
