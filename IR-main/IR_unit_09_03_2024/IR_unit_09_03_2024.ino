@@ -29,8 +29,8 @@ void ping_test() {
   uint8_t intention = 0; //4 bits
   uint8_t ID = 2; //4 bits
 
-  uint8_t first_byte = x<<4 + y; //x and y position of the robot
-  uint8_t second_byte = intention<<4 + ID; //intention and ID of the robot
+  uint8_t first_byte = 5; //x and y position of the robot
+  uint8_t second_byte = 12; //intention and ID of the robot
 
   //TRANSMIT ---------------
   set_buffer(0, first_byte);
@@ -68,7 +68,7 @@ void listen_test(){
   if (mode_of_operation == 1)return;
 
   unsigned long listen_duration = random(500,2000);
-  unsigned long start_time = millis();
+  unsigned long start_time = millis() ;
 
   while(millis() - start_time < listen_duration){
     uint8_t listening_result = listen_IR(); //listens for 20ms. 0:no package, 1:successful package, 2:corrupted package
