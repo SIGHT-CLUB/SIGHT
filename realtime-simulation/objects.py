@@ -10,7 +10,6 @@ def ____rotate_vector(vector: np.ndarray, angle_degrees: float) -> np.ndarray:
     return rotation_matrix @ vector    
 np.ext_rotate_vector = ____rotate_vector # Add the function to the numpy module
 
-
 def ensure_updated_decorator(f):
     # A decorator that ensures that the sensor output is updated before reading it
     def wrapper(self, *args, **kwargs):
@@ -54,7 +53,22 @@ class Robot():
                 self.current_rotation = 0 # The angle of rotation of the robot w.r.t the world frame in degrees in clockwise direction
                 self.facing_direction = np.array([1.0,0.0]) # The direction in which the robot is facing as a unit vector
 
+                self.robot_speed = np.array([0.0, 0.0]) #change of distance per second
+                self.rotation_speed = 0 #rotation angle of the robot per second
                 self.initiliaze_sensors()
+
+    def set_robot_movements(self, v_x:float=0, v_y:float=0, angle_per_sec:float = 0):
+        self.robot_speed[0] = v_x
+        self.robot_speed[1] = v_y
+        self.rotation_speed = angle_per_sec
+
+    def update_robots_position(self, del_time:float = 0):
+        del_x = self.robot_speed[0]*del_time
+        del_y = self.robot_speed[1]*del_time
+        self.__move_robot(del_x= del_x, del_y= del_y)
+
+        del_angle = self.rotation_speed*del_time
+        self.__rotate_robot(rotate_angle=del_angle)
 
     def initiliaze_sensors(self):
         """
@@ -151,14 +165,14 @@ class Robot():
         """
         return self.ultrasonic_sensors_list
     
-    def move_robot(self, del_x: float=0, del_y:float=0):
+    def __move_robot(self, del_x: float=0, del_y:float=0):
         """
         Moves the robot by the given distance in meters in the x and y direction
         """
         self.position[0] += del_x
         self.position[1] += del_y        
     
-    def rotate_robot(self,rotate_angle: float=0):
+    def __rotate_robot(self,rotate_angle: float=0):
         """
         rotates the robot by the given angle in degrees in the clockwise direction
         """
@@ -266,6 +280,7 @@ class Receiver(Sensor):
     def read_receiver_output(self):
         return self.receiver_output
     
+
     def set_receiver_output(self, output: int):
         self.receiver_output = output
 
