@@ -18,6 +18,10 @@ void set_number_of_package_bytes(uint16_t new_package_size) {
   NUMBER_OF_PACKAGE_BYTES = new_package_size;
 }
 
+uint8_t get_buffer(uint16_t byte_index) {
+  return IR_module_buffer[byte_index];
+}
+
 void set_buffer(uint16_t byte_index, uint8_t byte_value) {
   IR_module_buffer[byte_index] = byte_value;
 }
@@ -87,7 +91,7 @@ uint8_t listen_IR() {
   }
 
   //check if transmission is detected
-  if (counter > 5) {
+  if (is_received == 1) {
     delayMicroseconds(TRIGGER_DURATION_US * 1.5);
     unsigned long listen_starts = micros();
     for (uint8_t i = 0; i < (NUMBER_OF_PACKAGE_BYTES * 8); i++) {
