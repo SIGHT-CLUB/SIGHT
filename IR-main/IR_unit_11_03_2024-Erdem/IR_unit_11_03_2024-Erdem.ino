@@ -11,7 +11,7 @@ uint8_t mode = 0;  // 0: Receiver mode, 1: Transmitter mode
 uint8_t sub_mode = 0;
 
 uint8_t ROBOT_ID = 2;
-uint8_t NUMBER_OF_DATA_PACKAGES = 4;
+uint8_t NUMBER_OF_DATA_PACKAGES =3;
 uint8_t ROBOT_X = 3;
 uint8_t ROBOT_Y = 7;
 
@@ -24,11 +24,11 @@ const unsigned long CHIRPING_DURATION_MS = 10;
 const unsigned long DELAY_AFTER_CHIRPING_MS = 2.5;
 const unsigned long DELAY_BEFORE_SENDING_ACK_MS = 15;
 const unsigned long WAIT_CHIRPING_ACK_TIMEOUT_MS = 30;
-const unsigned long DELAY_AFTER_SENDING_ACK_MS = 50;
+const unsigned long DELAY_AFTER_RESPONDING_TO_ACK_MS = 25;
 
-const unsigned long DELAY_AFTER_ACK_IS_RECEIVED_MS = 75;
-const unsigned long DELAY_BETWEEN_DATA_PACKAGES_MS = 25;
-const unsigned long LISTEN_TIMEOUT_MS = 1000;
+const unsigned long DELAY_AFTER_ACK_IS_RECEIVED_MS = 50;
+const unsigned long DELAY_BETWEEN_DATA_PACKAGES_MS = 10;
+const unsigned long LISTEN_TIMEOUT_MS = 500;
 
 
 void loop() {
@@ -38,27 +38,34 @@ void loop() {
       mode = 1;
       sub_mode = 0;
       timer_tic = millis();
-    } else if (sub_mode == 0) {  //Wait for chirping signal
+      Serial.println("changing to transmitter mode");
+
+    } else if (sub_mode == 0) {  //Wait for chirping signal (! may be DATA), and send ACK-chirping if received.
       if (is_receiving_signal() == 1) {
         delay(DELAY_BEFORE_SENDING_ACK_MS);
         transmit_chirping(CHIRPING_DURATION_MS);
-        delay(DELAY_AFTER_SENDING_ACK_MS);
+        delay(DELAY_AFTER_RESPONDING_TO_ACK_MS);
         sub_mode = sub_mode + 1;
       }
-      // uint8_t listening_result = listen_IR();  //listens for 50ms (Check header!). 0:no package, 1:successful package, 2:corrupted package
-      // //50 to 100ms is passed since started to listening
-      // if (listening_result == 1) {
-      //   uint8_t second_byte = get_buffer(1);  // x (4 bit), y(4 bit)
-      //   uint8_t x = second_byte >> 4;
-      //   uint8_t y = second_byte % 16;
-      //   Serial.println();
-      //   Serial.println(x);
-      //   Serial.println(y);
-      //   delay(DELAY_BEFORE_SENDING_ACK_MS);
+    } else if (sub_mode == 1) {
+      //listen for header
+      uint8_t listening_result = listen_IR();
+      if (listening_result == 1) {
+        uint8_t first_byte = get_buffer(0);
+        uint8_t second_byte = get_buffer(1);
+        uint8_t number_of_packages = (first_byte >> 4) % 4;
+        Serial.println("\n#" + String(first_byte) + "," + String(second_byte));
+        for (uint8_t package_received = 1; package_received < number_of_packages; package_received++) {
+          uint8_t result = listen_IR();
+          Serial.println(result);
+        }
+      }
+      mode = 1;
+      sub_mode = 0;
+      Serial.println("changing to transmitter mode");
     }
-    mode = 1;
-    sub_mode = 0;
   }
+
   //TRANSMITTER MODE: =================================================================================================
   else if (mode == 1) {
     if (sub_mode == 0) {  //introduce random delay to avoid robots sending packages at the same time when the listening period is finished.
@@ -72,11 +79,13 @@ void loop() {
     } else if (sub_mode == 2) {  //Wait for ACK
       if (is_receiving_signal() == 1) {
         sub_mode = sub_mode + 1;
+        Serial.println("ACK-r");
         delay(DELAY_AFTER_ACK_IS_RECEIVED_MS);
       } else if (millis() - timer_tic > WAIT_CHIRPING_ACK_TIMEOUT_MS) {  //no ACK is received for ping
         mode = 0;
         sub_mode = 0;
         timer_tic = millis();
+        Serial.println("changing to receiver mode - No ACK");
       }
     } else if (sub_mode == 3) {  // ACK is received, stream data
       set_header_package(NUMBER_OF_DATA_PACKAGES, ROBOT_ID, ROBOT_X, ROBOT_Y);
@@ -89,6 +98,7 @@ void loop() {
       mode = 0;
       sub_mode = 0;
       timer_tic = millis();
+      Serial.println("changing to receiver mode");
     }
   }
 }
