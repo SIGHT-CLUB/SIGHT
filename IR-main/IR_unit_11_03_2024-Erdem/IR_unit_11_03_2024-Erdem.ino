@@ -27,7 +27,7 @@ const unsigned long WAIT_CHIRPING_ACK_TIMEOUT_MS = 30;
 const unsigned long DELAY_AFTER_RESPONDING_TO_ACK_MS = 25;
 
 const unsigned long DELAY_AFTER_ACK_IS_RECEIVED_MS = 50;
-const unsigned long DELAY_BETWEEN_DATA_PACKAGES_MS = 10;
+const unsigned long DELAY_BETWEEN_DATA_PACKAGES_MS = 25;
 const unsigned long LISTEN_TIMEOUT_MS = 500;
 
 
@@ -53,11 +53,23 @@ void loop() {
       if (listening_result == 1) {
         uint8_t first_byte = get_buffer(0);
         uint8_t second_byte = get_buffer(1);
+
+        uint8_t package_no = first_byte>>6;
         uint8_t number_of_packages = (first_byte >> 4) % 4;
-        Serial.println("\n#" + String(first_byte) + "," + String(second_byte));
+        uint8_t id_received = first_byte % 4;
+
+        uint8_t x = second_byte >> 4;
+        uint8_t y = second_byte %16;
+
+        Serial.println("\n" + String(package_no+1) + "/" + String(number_of_packages)+ ", ID = "+ String(id_received)+" "+String(x)+","+String(y));
         for (uint8_t package_received = 1; package_received < number_of_packages; package_received++) {
           uint8_t result = listen_IR();
-          Serial.println(result);
+          uint8_t first_byte = get_buffer(0);
+          uint8_t second_byte = get_buffer(1);
+
+          uint8_t package_no = first_byte>>6;
+          uint8_t data_1 = first_byte%64;
+          Serial.println(String(package_no+1) + "/" + String(number_of_packages)+ ", d1= "+String(data_1)+", d2= "+String(second_byte));
         }
       }
       mode = 1;
