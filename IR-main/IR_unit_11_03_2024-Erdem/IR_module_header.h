@@ -25,6 +25,7 @@ void reverse_buffer();
 void transmit_buffer();
 void transmit_zero();
 void transmit_one();
+void transmit_chirping(unsigned long duration_ms);
 uint8_t is_receiving_signal();
 uint8_t listen_IR();
 uint16_t generate_CRC_16_bit();

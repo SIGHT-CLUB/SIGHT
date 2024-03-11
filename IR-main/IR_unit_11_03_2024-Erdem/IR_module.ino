@@ -69,6 +69,12 @@ void transmit_buffer() {
   reverse_buffer();
 }
 //TRANSITTERS ========================================================
+void transmit_chirping(unsigned long duration_ms){
+  unsigned long start_time = millis();
+  while(millis()-start_time < duration_ms){
+    transmit_zero();
+  }
+}
 unsigned long TRANSMISSION_START_TIME = 0;
 
 void transmit_zero() {
