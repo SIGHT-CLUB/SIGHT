@@ -15,7 +15,8 @@ uint8_t sub_mode = 0;
 unsigned long timer_tic = 0;
 unsigned long timer_toc = 0;
 
-unsigned long WAIT_PING_ACK_TIMEOUT_MS = 50;
+unsigned long DELAY_AFTER_PING_MS = 5;
+unsigned long WAIT_PING_ACK_TIMEOUT_MS = 25;
 
 void loop() {
   
@@ -25,6 +26,7 @@ void loop() {
     if(sub_mode == 0){//Send a pinging message
       set_ping_package(2,3,3,7); // ID, #Packages, x, y
       transmit_buffer();
+      delay(DELAY_AFTER_PING_MS);//To avoid the robot is triggering itself. This ensures receiver is not triggered by this robot. Do not know whether usefull or not.
       sub_mode = 1;
       timer_tic = millis();
     }
@@ -33,6 +35,7 @@ void loop() {
         mode = 0;
         sub_mode = 0;
       }
+
     }
   }
 

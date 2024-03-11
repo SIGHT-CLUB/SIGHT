@@ -22,6 +22,14 @@ uint8_t get_buffer(uint16_t byte_index) {
   return IR_module_buffer[byte_index];
 }
 
+uint8_t is_receiving_signal(){
+  if (digitalRead(IR_RECEIVE_PIN) == 0){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
 void set_buffer(uint16_t byte_index, uint8_t byte_value) {
   IR_module_buffer[byte_index] = byte_value;
 }
