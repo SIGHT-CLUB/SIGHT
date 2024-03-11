@@ -4,33 +4,61 @@
 void setup() {
   Serial.begin(115200);
   initialize_IR_module();
+  set_number_of_package_bytes(4);
+
 }
 
+
+uint8_t mode = 0;  // 0: Receiver mode, 1: Transmitter mode
 void loop() {
-//communication_test();
-ping_test();
-listen_test();
+  set_ping_package(2,3,3,7); // ID, #Packages, x, y
 }
 
+void set_ping_package(uint8_t ID, uint8_t number_of_packages, uint8_t x, uint8_t y) {
+  uint8_t PING_INTENTION_NO = 0;
+  //Most sig to least significant -> ID (3 bit), Number of packages to be sent (2 bit), Intention(3 bit)
 
-uint8_t mode_of_operation = 0; //0:listen, 1:ping
+
+  uint8_t first_byte = (ID<<5) + (number_of_packages<<3) + (PING_INTENTION_NO); 
+  uint8_t second_byte = (x<<4) + y;
+
+  set_buffer(0, first_byte);
+  set_buffer(1, second_byte);
+
+  Serial.println(first_byte);
+  Serial.println(second_byte);
+  Serial.println();
+
+  uint16_t CRC_16 = generate_CRC_16_bit();
+  uint8_t CRC_SIG = CRC_16 >> 8;
+  uint8_t CRC_LST = CRC_16 % 256;
+  set_buffer(2, CRC_SIG);
+  set_buffer(3, CRC_LST);
+
+}
+
+void set_data_package(uint8_t byte_1, uint8_t byte_2) {
+
+}
+
+uint8_t mode_of_operation = 0;  //0:listen, 1:ping
 unsigned long last_mode_change = 0;
 
 void ping_test() {
-  if (mode_of_operation == 0)return;
+  if (mode_of_operation == 0) return;
   Serial.println("\n Pinging the IR module...");
 
-  set_number_of_package_bytes(4);
+  
 
   //INFO ---------------
-  uint8_t x = 3; // 4 bits
-  uint8_t y = 4; // 4 bits
-  
-  uint8_t intention = 0; //4 bits
-  uint8_t ID = 2; //4 bits
+  uint8_t x = 3;  // 4 bits
+  uint8_t y = 4;  // 4 bits
 
-  uint8_t first_byte = x*16 + y; //x and y position of the robot
-  uint8_t second_byte = 12; //intention and ID of the robot
+  uint8_t intention = 0;  //4 bits
+  uint8_t ID = 2;         //4 bits
+
+  uint8_t first_byte = x * 16 + y;  //x and y position of the robot
+  uint8_t second_byte = 12;         //intention and ID of the robot
 
   //TRANSMIT ---------------
   set_buffer(0, first_byte);
@@ -41,10 +69,10 @@ void ping_test() {
   uint8_t CRC_LST = CRC_16 % 256;
   set_buffer(2, CRC_SIG);
   set_buffer(3, CRC_LST);
-  
-  unsigned int current_time = millis()/1000;
-  
-  transmit_buffer(); 
+
+  unsigned int current_time = millis() / 1000;
+
+  transmit_buffer();
 
   // long delay_after_ping = random(20, 100);
   // delay(delay_after_ping);
@@ -63,33 +91,32 @@ void ping_test() {
   //   set_buffer(3, CRC_LST);
   //   transmit_buffer();
   // }
-
 }
 
-void listen_test(){
-  if (mode_of_operation == 1)return;
+void listen_test() {
+  if (mode_of_operation == 1) return;
 
-  unsigned long listen_duration = random(500,600);
+  unsigned long listen_duration = random(500, 600);
 
   // Serial.println("\nThe random number is: ");
   // Serial.println(random(1000,2000));
 
   Serial.println("\n Currently Listening...");
-  unsigned long start_time = millis() ;
+  unsigned long start_time = millis();
 
-  while(millis() - start_time < listen_duration){
-    uint8_t listening_result = listen_IR(); //listens for 20ms. 0:no package, 1:successful package, 2:corrupted package
-    if (listening_result == 1){
+  while (millis() - start_time < listen_duration) {
+    uint8_t listening_result = listen_IR();  //listens for 20ms. 0:no package, 1:successful package, 2:corrupted package
+    if (listening_result == 1) {
       Serial.println("Package is received");
-      
+
       uint8_t first_byte = get_buffer(0);
       uint8_t second_byte = get_buffer(1);
 
-      uint8_t  x = first_byte >> 4;
-      uint8_t  y = first_byte % 16;
+      uint8_t x = first_byte >> 4;
+      uint8_t y = first_byte % 16;
 
-      uint8_t  intention = second_byte >> 4;
-      uint8_t  ID = second_byte % 16;
+      uint8_t intention = second_byte >> 4;
+      uint8_t ID = second_byte % 16;
 
       Serial.println("x: " + String(x) + " y: " + String(y) + " intention: " + String(intention) + " ID: " + String(ID));
       break;
@@ -112,7 +139,7 @@ void communication_test() {
     succesful_package_counter = succesful_package_counter + 1;
   } else if (listening_result == 2) {
     corrupted_package_counter = corrupted_package_counter + 1;
-  } else if (listening_result == 0){
+  } else if (listening_result == 0) {
     //pass (no data is received)
   }
 
