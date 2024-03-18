@@ -1,9 +1,9 @@
 //Refer to: https://www.ersinelektronik.com/class/INNOVAEditor/assets/Datasheets/TSOP1136.pdf
 
-uint8_t NUMBER_OF_PACKAGE_BYTES = 16;  //cannot be smaller than 3.
+uint8_t NUMBER_OF_PACKAGE_BYTES = 20;  //cannot be smaller than 3.
 unsigned long TRIGGER_DURATION_US = (BURST_HALF_PERIOD_US * 2) * K_NUMBER_OF_BURSTS;
 
-uint8_t IR_module_buffer[16];
+uint8_t IR_module_buffer[512];
 
 void initialize_IR_module() {
   pinMode(IR_RECEIVE_PIN, INPUT);
@@ -61,7 +61,7 @@ unsigned long TRANSMISSION_START_TIME = 0;
 
 void transmit_zero() {
   TRANSMISSION_START_TIME = micros();
-  while (micros() - TRANSMISSION_START_TIME < (TRIGGER_DURATION_US-2*BURST_HALF_PERIOD_US)) {
+  while (micros() - TRANSMISSION_START_TIME < (TRIGGER_DURATION_US-30)) {
     // 32 us
     digitalWrite(IR_LED, HIGH);
     delayMicroseconds(BURST_HALF_PERIOD_US);

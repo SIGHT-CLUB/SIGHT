@@ -56,7 +56,7 @@ void communication_test() {
         set_buffer(number_of_package_bytes - 1, CRC_LST);
         transmit_buffer();
         Serial.println(String(i) + " / " + String(255));
-        delay(25);
+        delay(100);
       }
       Serial.println("Transmitting process is completed.");
     } else if (incoming_byte == 'B') {
