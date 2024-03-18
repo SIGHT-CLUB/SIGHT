@@ -1,7 +1,7 @@
 //Refer to: https://www.ersinelektronik.com/class/INNOVAEditor/assets/Datasheets/TSOP1136.pdf
 
 uint8_t NUMBER_OF_PACKAGE_BYTES = 4;  //cannot be smaller than 3.
-unsigned long TRIGGER_DURATION_US = (BURST_HALF_PERIOD_US * 2) * K_NUMBER_OF_BURSTS;
+unsigned long BIT_PERIOD_US = (BURST_HALF_PERIOD_US * 2) * K_NUMBER_OF_BURSTS;
 
 uint8_t IR_module_buffer[8];
 
@@ -22,10 +22,10 @@ uint8_t get_buffer(uint16_t byte_index) {
   return IR_module_buffer[byte_index];
 }
 
-uint8_t is_receiving_signal(){
-  if (digitalRead(IR_RECEIVE_PIN) == 0){
+uint8_t is_receiving_signal() {
+  if (digitalRead(IR_RECEIVE_PIN) == 0) {
     return 1;
-  }else{
+  } else {
     return 0;
   }
 }
@@ -52,7 +52,6 @@ void transmit_buffer() {
   //=================
 
   transmit_zero();  //start bit
-
   for (uint16_t byte_index = 0; byte_index < NUMBER_OF_PACKAGE_BYTES; byte_index++) {
     for (uint8_t package_bit = 0; package_bit < 8; package_bit++) {
       uint8_t send_bit = (IR_module_buffer[byte_index] & 1);
@@ -68,29 +67,72 @@ void transmit_buffer() {
   //=================
   reverse_buffer();
 }
+
+void transmit_buffer_no_accumulation() {
+
+  reverse_buffer();
+  //=================
+
+  unsigned long transmission_start_time = micros();
+  unsigned long accurate_start_time = transmission_start_time;
+  
+  transmit_zero_no_accumulation(accurate_start_time);  //start bit
+  accurate_start_time = accurate_start_time + BIT_PERIOD_US;
+
+  for (uint16_t byte_index = 0; byte_index < NUMBER_OF_PACKAGE_BYTES; byte_index++) {
+    for (uint8_t package_bit = 0; package_bit < 8; package_bit++) {
+      uint8_t send_bit = (IR_module_buffer[byte_index] & 1);
+      if (send_bit == 0) {
+        transmit_zero_no_accumulation(accurate_start_time);
+      } else {
+        transmit_one(accurate_start_time);
+      }
+      IR_module_buffer[byte_index] = IR_module_buffer[byte_index] >> 1;
+      accurate_start_time =  accurate_start_time + BIT_PERIOD_US;
+    }
+  }
+
+  //=================
+  reverse_buffer();
+}
+
 //TRANSITTERS ========================================================
-void transmit_chirping(unsigned long duration_ms){
+void transmit_chirping(unsigned long duration_ms) {
   unsigned long start_time = millis();
-  while(millis()-start_time < duration_ms){
+  while (millis() - start_time < duration_ms) {
     transmit_zero();
   }
 }
 unsigned long TRANSMISSION_START_TIME = 0;
 
-void transmit_zero() {
-  TRANSMISSION_START_TIME = micros();
-  while (micros() - TRANSMISSION_START_TIME < (TRIGGER_DURATION_US)) {
+void transmit_zero_no_accumulation(unsigned long accurate_start_time) {
+  while (micros() - accurate_start_time < (BIT_PERIOD_US)) {
     digitalWrite(IR_LED, HIGH);
     delayMicroseconds(BURST_HALF_PERIOD_US);
     digitalWrite(IR_LED, LOW);
     delayMicroseconds(BURST_HALF_PERIOD_US);
   }
 }
+void transmit_one_no_accumulation(unsigned long accurate_start_time) {
+  while (micros() - accurate_start_time < (BIT_PERIOD_US)) {
+    digitalWrite(IR_LED, LOW);
+    delay(BURST_HALF_PERIOD_US);
+  }
+}
 
+void transmit_zero() {
+  TRANSMISSION_START_TIME = micros();
+  while (micros() - TRANSMISSION_START_TIME < (BIT_PERIOD_US)) {
+    digitalWrite(IR_LED, HIGH);
+    delayMicroseconds(BURST_HALF_PERIOD_US);
+    digitalWrite(IR_LED, LOW);
+    delayMicroseconds(BURST_HALF_PERIOD_US);
+  }
+}
 void transmit_one() {
   TRANSMISSION_START_TIME = micros();
   digitalWrite(IR_LED, LOW);
-  delayMicroseconds(TRIGGER_DURATION_US);
+  delayMicroseconds(BIT_PERIOD_US);
 }
 
 uint8_t listen_IR() {
@@ -106,13 +148,13 @@ uint8_t listen_IR() {
 
   //check if transmission is detected
   if (is_received == 1) {
-    delayMicroseconds(TRIGGER_DURATION_US * 1.5);
+    delayMicroseconds(BIT_PERIOD_US * 1.5);
     unsigned long listen_starts = micros();
     for (uint8_t i = 0; i < (NUMBER_OF_PACKAGE_BYTES * 8); i++) {
       uint8_t byte_no = i / 8;
 
       IR_module_buffer[byte_no] = (IR_module_buffer[byte_no] << 1) + digitalRead(IR_RECEIVE_PIN);
-      while (micros() < listen_starts + (i + 1) * TRIGGER_DURATION_US) {
+      while (micros() < listen_starts + (i + 1) * BIT_PERIOD_US) {
         continue;
       }
     }
