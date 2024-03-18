@@ -8,6 +8,20 @@ void setup() {
 
 void loop() {
 communication_test();
+  // unsigned int start_time;
+  // unsigned int finish_time;
+  // unsigned int duration;
+  // unsigned long TRANSMISSION_START_TIME = 0;
+
+  // start_time = millis();
+  // for (uint16_t i = 0; i<1000; i++){
+  // TRANSMISSION_START_TIME = micros();
+  // digitalWrite(IR_LED, LOW);
+  // delayMicroseconds(TRIGGER_DURATION_US-12);
+  // }
+  // finish_time = millis();
+  // duration = finish_time - start_time;
+  // Serial.println(duration);
 }
 
 
