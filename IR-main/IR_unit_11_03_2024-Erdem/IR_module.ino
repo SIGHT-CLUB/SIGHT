@@ -85,7 +85,7 @@ void transmit_buffer_no_accumulation() {
       if (send_bit == 0) {
         transmit_zero_no_accumulation(accurate_start_time);
       } else {
-        transmit_one(accurate_start_time);
+        transmit_one_no_accumulation(accurate_start_time);
       }
       IR_module_buffer[byte_index] = IR_module_buffer[byte_index] >> 1;
       accurate_start_time =  accurate_start_time + BIT_PERIOD_US;
