@@ -1,9 +1,9 @@
 //Refer to: https://www.ersinelektronik.com/class/INNOVAEditor/assets/Datasheets/TSOP1136.pdf
 
-uint8_t NUMBER_OF_PACKAGE_BYTES = 20;  //cannot be smaller than 3.
+uint8_t NUMBER_OF_PACKAGE_BYTES = 16;  //cannot be smaller than 3.
 unsigned long TRIGGER_DURATION_US = (BURST_HALF_PERIOD_US * 2) * K_NUMBER_OF_BURSTS;
 
-uint8_t IR_module_buffer[512];
+uint8_t IR_module_buffer[32];
 
 void initialize_IR_module() {
   pinMode(IR_RECEIVE_PIN, INPUT);

@@ -15,7 +15,7 @@
 
 extern uint8_t NUMBER_OF_PACKAGE_BYTES;
 extern unsigned long TRIGGER_DURATION_US;
-extern uint8_t IR_module_buffer[8];
+extern uint8_t IR_module_buffer[16];
 
 void initialize_IR_module();
 uint16_t get_number_of_package_bytes();
