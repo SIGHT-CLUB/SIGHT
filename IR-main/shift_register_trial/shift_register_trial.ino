@@ -10,7 +10,7 @@ void setup() {
 uint8_t counter = 0;
 void loop() {
 
-  set_active_LED_as(counter%8);
+  set_active_LED_as(2);
   counter = counter +1;
   delay(5000);
 }
@@ -34,7 +34,7 @@ void set_active_LED_as(uint8_t LED_index) {
 
 void toggle_clk() {
   digitalWrite(SHIFT_REG_CLK_PIN, LOW);
-  delayMicroseconds(5000);
+  delay(250);
   digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
-  delayMicroseconds(5000);
+  delay(250);
 }
