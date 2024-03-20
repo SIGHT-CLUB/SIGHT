@@ -1,9 +1,9 @@
 //Refer to: https://www.ersinelektronik.com/class/INNOVAEditor/assets/Datasheets/TSOP1136.pdf
 
-uint8_t NUMBER_OF_PACKAGE_BYTES = 4;  //cannot be smaller than 3.
+uint8_t NUMBER_OF_PACKAGE_BYTES = 20;  //cannot be smaller than 3.
 unsigned long TRIGGER_DURATION_US = (BURST_HALF_PERIOD_US * 2) * K_NUMBER_OF_BURSTS;
 
-uint8_t IR_module_buffer[8];
+uint8_t IR_module_buffer[512];
 
 void initialize_IR_module() {
   pinMode(IR_RECEIVE_PIN, INPUT);
@@ -16,10 +16,6 @@ uint16_t get_number_of_package_bytes() {
 }
 void set_number_of_package_bytes(uint16_t new_package_size) {
   NUMBER_OF_PACKAGE_BYTES = new_package_size;
-}
-
-uint8_t get_buffer(uint16_t byte_index) {
-  return IR_module_buffer[byte_index];
 }
 
 void set_buffer(uint16_t byte_index, uint8_t byte_value) {
@@ -65,7 +61,8 @@ unsigned long TRANSMISSION_START_TIME = 0;
 
 void transmit_zero() {
   TRANSMISSION_START_TIME = micros();
-  while (micros() - TRANSMISSION_START_TIME < (TRIGGER_DURATION_US)) {
+  while (micros() - TRANSMISSION_START_TIME < (TRIGGER_DURATION_US-30)) {
+    // 32 us
     digitalWrite(IR_LED, HIGH);
     delayMicroseconds(BURST_HALF_PERIOD_US);
     digitalWrite(IR_LED, LOW);
@@ -75,8 +72,9 @@ void transmit_zero() {
 
 void transmit_one() {
   TRANSMISSION_START_TIME = micros();
+  // 12 us
   digitalWrite(IR_LED, LOW);
-  delayMicroseconds(TRIGGER_DURATION_US);
+  delayMicroseconds(TRIGGER_DURATION_US-10);
 }
 
 uint8_t listen_IR() {
@@ -107,17 +105,18 @@ uint8_t listen_IR() {
     uint8_t CRC_SIG = CRC_16 >> 8;
     uint8_t CRC_LST = CRC_16 % 256;
     if (IR_module_buffer[NUMBER_OF_PACKAGE_BYTES - 1] == CRC_LST && IR_module_buffer[NUMBER_OF_PACKAGE_BYTES - 2] == CRC_SIG) {
-      // for (uint8_t i = 0; i < NUMBER_OF_PACKAGE_BYTES; i++) {
-      //   Serial.print(IR_module_buffer[i]);
-      //   Serial.print(' ');
-      // }
-      // Serial.println();
+      for (uint8_t i = 0; i < NUMBER_OF_PACKAGE_BYTES; i++) {
+        Serial.print(IR_module_buffer[i]);
+        Serial.print(' ');
+      }
+      Serial.println();
       return 1;  //Package is valid. return 1
     } else {
-      // Serial.println("Package corrupted");
+      Serial.println("Package corrupted");
       return 2;  // CRC check is failed. return 2
     }
   }
+
   return 0;  // No signal is detected. return 0
 }
 
