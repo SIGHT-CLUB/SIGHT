@@ -97,15 +97,21 @@ void listen_test(){
       if(intention == 1){
         
         Serial.println("Ping package is received");
+        
         mode_of_operation = 2; // 2 corresponds to the listening for the message mode
         
         send_ping_acknowledgement();  
+        set_number_of_package_bytes(8);// Size of message packet is 8
         listen_to_message();
+        set_number_of_package_bytes(4); // Changing back to out regular size
         send_message_acknowledgement();
+
+        //Back to pinging
+        mode_of_operation = 1;
         
         return;
       }
-      
+      //ŞURDA KALDIM
       else if(intention == 2){ // Acknowledgement is received
 
         mode_of_operation = 3; // message sending mode
@@ -134,72 +140,62 @@ void listen_test(){
 // mode_of_operation = 2, sending acknowledgement 
 void send_ping_acknowledgement()
 {
-  // Sends the same acknowledgement message c times
-  for(uint8_t c = 0; c<1; c++ ){
+   
+  Serial.println("\n Sending acknowledgement...");
 
-    Serial.println("\n Sending acknowledgement...");
+  set_number_of_package_bytes(4);
 
-    set_number_of_package_bytes(4);
+  //INFO ---------------
+  uint8_t x = 3; // 4 bits
+  uint8_t y = 4; // 4 bits
+  uint8_t intention = 2; //4 bits
 
-    //INFO ---------------
-    uint8_t x = 3; // 4 bits
-    uint8_t y = 4; // 4 bits
-    uint8_t intention = 2; //4 bits
+  uint8_t first_byte = x*16 + y; //x and y position of the robot
+  uint8_t second_byte = intention*16 + ID; //intention and ID of the robot
 
-    uint8_t first_byte = x*16 + y; //x and y position of the robot
-    uint8_t second_byte = intention*16 + ID; //intention and ID of the robot
+  //TRANSMIT ---------------
+  set_buffer(0, first_byte);
+  set_buffer(1, second_byte);
 
-    //TRANSMIT ---------------
-    set_buffer(0, first_byte);
-    set_buffer(1, second_byte);
-
-    uint16_t CRC_16 = generate_CRC_16_bit();
-    uint8_t CRC_SIG = CRC_16 >> 8;
-    uint8_t CRC_LST = CRC_16 % 256;
-    set_buffer(2, CRC_SIG);
-    set_buffer(3, CRC_LST);
-    
-    unsigned int current_time = millis()/1000;
-    
-    transmit_buffer(); 
-
-  }
+  uint16_t CRC_16 = generate_CRC_16_bit();
+  uint8_t CRC_SIG = CRC_16 >> 8;
+  uint8_t CRC_LST = CRC_16 % 256;
+  set_buffer(2, CRC_SIG);
+  set_buffer(3, CRC_LST);
+  
+  unsigned int current_time = millis()/1000;
+  
+  transmit_buffer(); 
 
 }
 
 // mode_of_operation = 4, sending acknowledgement 
 void send_message_acknowledgement()
 {
-  // Sends the same acknowledgement message c times
-  for(uint8_t c = 0; c<1; c++ ){
+  
+  Serial.println("\n Sending acknowledgement...");
 
-    Serial.println("\n Sending acknowledgement...");
+  //INFO ---------------
+  uint8_t x = 3; // 4 bits
+  uint8_t y = 4; // 4 bits
+  uint8_t intention = 4; //4 bits
 
-    set_number_of_package_bytes(4);
+  uint8_t first_byte = x*16 + y; //x and y position of the robot
+  uint8_t second_byte = intention*16 + ID; //intention and ID of the robot
 
-    //INFO ---------------
-    uint8_t x = 3; // 4 bits
-    uint8_t y = 4; // 4 bits
-    uint8_t intention = 4; //4 bits
+  //TRANSMIT ---------------
+  set_buffer(0, first_byte);
+  set_buffer(1, second_byte);
 
-    uint8_t first_byte = x*16 + y; //x and y position of the robot
-    uint8_t second_byte = intention*16 + ID; //intention and ID of the robot
-
-    //TRANSMIT ---------------
-    set_buffer(0, first_byte);
-    set_buffer(1, second_byte);
-
-    uint16_t CRC_16 = generate_CRC_16_bit();
-    uint8_t CRC_SIG = CRC_16 >> 8;
-    uint8_t CRC_LST = CRC_16 % 256;
-    set_buffer(2, CRC_SIG);
-    set_buffer(3, CRC_LST);
-    
-    unsigned int current_time = millis()/1000;
-    
-    transmit_buffer(); 
-
-  }
+  uint16_t CRC_16 = generate_CRC_16_bit();
+  uint8_t CRC_SIG = CRC_16 >> 8;
+  uint8_t CRC_LST = CRC_16 % 256;
+  set_buffer(2, CRC_SIG);
+  set_buffer(3, CRC_LST);
+  
+  unsigned int current_time = millis()/1000;
+  
+  transmit_buffer(); 
 
 }
 
@@ -245,9 +241,9 @@ void send_message()
   delay(1000);
 }
 
-void listen_to_message(){
+uint8_t listen_to_message(){
 
-unsigned long listen_duration = 50;
+unsigned long listen_duration = 70;
 
 Serial.println("\n Listening for the message...");
 unsigned long start_time = millis() ;
@@ -255,12 +251,13 @@ unsigned long start_time = millis() ;
 while(millis() - start_time < listen_duration){
   uint8_t listening_result = listen_IR(); //listens for 20ms at a time. 0:no package, 1:successful package, 2:corrupted package
   if (listening_result == 1){
-    Serial.println("Message packages are received");
     
     uint8_t first_byte = get_buffer(0);
     uint8_t second_byte = get_buffer(1);
     uint8_t third_byte = get_buffer(2);
     uint8_t fourth_byte = get_buffer(3);
+    uint8_t fifth_byte = get_buffer(4);
+    uint8_t sixth_byte = get_buffer(5);
 
     uint8_t  x = first_byte >> 4;
     uint8_t  y = first_byte % 16;
@@ -268,14 +265,22 @@ while(millis() - start_time < listen_duration){
     uint8_t  intention = second_byte >> 4; 
     uint8_t  ID = second_byte % 16;
 
-    Serial.println("x: " + String(x) + " y: " + String(y) + " intention: " + String(intention) + " ID: " + String(ID)); // First half of the message
-    Serial.println("3rd byte: " + String(third_byte) +"4th byte: " + String(fourth_byte)); // Second half of the message
+    if(intention == 3){
+    Serial.println("Message packages are received");
 
+    Serial.println("x: " + String(x) + " y: " + String(y) + " intention: " + String(intention) + " ID: " + String(ID)); // Header Info
+    Serial.println("3rd byte: " + String(third_byte) +"4th byte: " + String(fourth_byte)); // First half of the message
+    Serial.println("3rd byte: " + String(fifth_byte) +"4th byte: " + String(sixth_byte)); // Second half of the message
+    
+    return 1;
+    }
   }
 }
-  mode_of_operation = 1; // back to pinging
 
-delay(1000);
+Serial.println("Failed to listen to the message.");
+delay(1000); //??
+return 0;
+
 }
 
 uint8_t listen_for_message_acknowledgement(){
@@ -311,4 +316,3 @@ while(millis() - start_time < listen_duration){
 }
 delay(1000);
 }
-
