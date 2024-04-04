@@ -65,7 +65,7 @@ unsigned long TRANSMISSION_START_TIME = 0;
 
 void transmit_zero() {
   TRANSMISSION_START_TIME = micros();
-  while (micros() - TRANSMISSION_START_TIME < (TRIGGER_DURATION_US)) {
+  while (micros() - TRANSMISSION_START_TIME < (TRIGGER_DURATION_US - 30)) {
     digitalWrite(IR_LED, HIGH);
     delayMicroseconds(BURST_HALF_PERIOD_US);
     digitalWrite(IR_LED, LOW);
@@ -76,7 +76,7 @@ void transmit_zero() {
 void transmit_one() {
   TRANSMISSION_START_TIME = micros();
   digitalWrite(IR_LED, LOW);
-  delayMicroseconds(TRIGGER_DURATION_US);
+  delayMicroseconds(TRIGGER_DURATION_US - 10);
 }
 
 uint8_t listen_IR() {
