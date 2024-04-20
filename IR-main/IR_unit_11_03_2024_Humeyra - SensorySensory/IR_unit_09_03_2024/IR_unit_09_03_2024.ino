@@ -15,6 +15,13 @@ uint8_t ID = 2; // MU SPECIFIC INFO bits
 void setup() {
   Serial.begin(115200);
   initialize_IR_module();
+
+  pinMode(SHIFT_REG_INPUT, OUTPUT);
+  pinMode(SHIFT_REG_CLK_PIN, OUTPUT);
+  digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
+  Serial.begin(115200);
+  initialize_IR_module();
+  set_active_LED_as(1);
 }
 
 void loop() {
@@ -135,7 +142,6 @@ void listen_test(){
 
 
         uint8_t MESSAGE_DELIVERED = listen_for_message_acknowledgement();
-        
         // uint8_t message_counter = 0; 
         // uint8_t sending_limit = 0; // We try upto sending_limit times to send the message again
         
@@ -373,4 +379,28 @@ while(millis() - start_time < listen_duration){
   }
 }
 //delay(10);
+}
+
+
+void set_active_LED_as(uint8_t LED_index) {
+  LED_index = 7 - LED_index;  //this is line is not important. Just to ease the debuggin (order of leds)
+  if (LED_index < 0 || LED_index > 7) {
+    LED_index = 0;
+  }
+
+  for (uint8_t i = 0; i < 8; i++) {
+    if (i == LED_index) {
+      digitalWrite(SHIFT_REG_INPUT, HIGH);
+    } else {
+      digitalWrite(SHIFT_REG_INPUT, LOW);
+    }
+    toggle_clk();
+  }
+}
+
+void toggle_clk() {
+  digitalWrite(SHIFT_REG_CLK_PIN, LOW);
+  delay(50);
+  digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
+  delay(50);
 }
