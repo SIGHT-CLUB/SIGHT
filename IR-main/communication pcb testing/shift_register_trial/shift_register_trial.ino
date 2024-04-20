@@ -1,3 +1,5 @@
+#include "IR_module_header.h"
+
 #define RECEIVE_PIN 7
 #define SHIFT_REG_INPUT 8
 #define SHIFT_REG_CLK_PIN 9
@@ -18,14 +20,16 @@ void setup() {
 
 void loop() {
   set_active_s(3);
-  digitalWrite(TRANSMIT_PIN, HIGH);
-  delay(2500);
+  uint8_t result = listen_IR();
+  if(result != 0){
+    Serial.println(result);
+  }
+  
 }
 
-
 void set_active_s(uint8_t pick_this_s) {
-  digitalWrite(TRANSMIT_PIN, LOW);
-  int led_to_i_mapping[8] = { 4, 5, 6, 7, 0, 1, 2, 3 };  // do not alter, physically linked
+  
+  int led_to_i_mapping[9] = { 4, 5, 6, 7, 0, 1, 2, 3, 999 };  // do not alter, physically linked
   digitalWrite(SHIFT_REG_INPUT, LOW);
   for (uint8_t i = 0; i < 8; i++) {
     if (i == led_to_i_mapping[pick_this_s]) {
