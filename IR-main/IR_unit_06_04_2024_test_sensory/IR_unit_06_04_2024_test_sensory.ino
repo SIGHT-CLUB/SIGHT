@@ -1,14 +1,22 @@
 
 #include "IR_module_header.h";
 
+#define SHIFT_REG_INPUT 8
+#define SHIFT_REG_CLK_PIN 9
+
 uint8_t mode_of_operation = 0; //0: listen for ping or ack, 1:ping, 2: ack for ping, 3: send data, 4: listen for data, 5: ack for data
 unsigned long last_mode_change = 0;
 uint8_t package_count = 0;
 uint8_t ID = 2; //4 bits
 
 void setup() {
+  pinMode(SHIFT_REG_INPUT, OUTPUT);
+  pinMode(SHIFT_REG_CLK_PIN, OUTPUT);
+  digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
   Serial.begin(115200);
   initialize_IR_module();
+  set_active_LED_as(1);
+  // unsigned long start_time = millis();
 }
 
 void loop() {
@@ -17,21 +25,13 @@ communication();
 }
 
 void communication() {
-unsigned long ping_begin;
-unsigned long ping_d;
-unsigned long listen_begin;
-unsigned long listen_d;
+// if (millis()-start_time > 1000){
+//   set_active_LED_as(index);
+//   if index  
+// }
 
-ping_begin = millis();
 ping_test();
-ping_d = millis() - ping_begin;
-Serial.println("ping duration :"+String(ping_d));
-
-listen_begin = millis();
 listen_test();
-listen_d = millis() - listen_begin;
-Serial.println("listen duration :"+String(listen_d));
-
 transmit_data();
 listen_for_data_test();
 uint8_t delay_num = random(0,1);
@@ -472,3 +472,27 @@ void communication_test() {
     }
   }
 }
+
+void set_active_LED_as(uint8_t LED_index) {
+  LED_index = 7-LED_index; //this is line is not important. Just to ease the debuggin (order of leds)
+  if (LED_index < 0 || LED_index > 7) {
+    LED_index = 0;
+  }
+
+  for (uint8_t i = 0; i < 8; i++) {
+    if (i == LED_index) {
+      digitalWrite(SHIFT_REG_INPUT, HIGH);
+    }else{
+      digitalWrite(SHIFT_REG_INPUT, LOW);
+    }
+    toggle_clk();
+  }
+}
+
+void toggle_clk() {
+  digitalWrite(SHIFT_REG_CLK_PIN, LOW);
+  delay(250);
+  digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
+  delay(250);
+}
+
