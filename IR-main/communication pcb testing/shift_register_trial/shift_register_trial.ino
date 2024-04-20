@@ -10,35 +10,58 @@ void setup() {
   pinMode(TRANSMIT_PIN, OUTPUT);
   digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
 
+  digitalWrite(TRANSMIT_PIN, HIGH);
+  digitalWrite(SHIFT_REG_INPUT, LOW);
+
   Serial.begin(9600);
 }
 
 void loop() {
-  set_active_output_as(1);
+  set_active_s(3);
   digitalWrite(TRANSMIT_PIN, HIGH);
-  delay(1000);
+  delay(2500);
 }
 
-void set_active_output_as(uint8_t output_index) {
-  digitalWrite(TRANSMIT_PIN, LOW);
-  output_index = 7 - output_index;  //this is line is not important. Just to ease the debuggin (order of leds)
-  if (output_index < 0 || output_index > 7) {
-    output_index = 0;
-  }
 
+void set_active_s(uint8_t pick_this_s) {
+  digitalWrite(TRANSMIT_PIN, LOW);
+  int led_to_i_mapping[8] = { 4, 5, 6, 7, 0, 1, 2, 3 };  // do not alter, physically linked
+  digitalWrite(SHIFT_REG_INPUT, LOW);
   for (uint8_t i = 0; i < 8; i++) {
-    if (i == output_index) {
+    if (i == led_to_i_mapping[pick_this_s]) {
       digitalWrite(SHIFT_REG_INPUT, HIGH);
     } else {
       digitalWrite(SHIFT_REG_INPUT, LOW);
     }
-    toggle_clk();
+    delayMicroseconds(5);
+
+    digitalWrite(SHIFT_REG_CLK_PIN, LOW);
+    delayMicroseconds(25);
+    digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
+    delayMicroseconds(25);
   }
 }
+void rotate_led_test() {
 
-void toggle_clk() {
-  digitalWrite(SHIFT_REG_CLK_PIN, LOW);
-  delay(10);
-  digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
-  delay(10);
+  static int pick_this_led = 0;  //
+  pick_this_led = (pick_this_led + 1) % 8;
+  int led_to_i_mapping[8] = { 4, 5, 6, 7, 0, 1, 2, 3 };
+
+  Serial.println("pick_this= " + String(pick_this_led));
+  digitalWrite(SHIFT_REG_INPUT, LOW);
+  for (uint8_t i = 0; i < 8; i++) {
+
+    if (i == led_to_i_mapping[pick_this_led]) {
+      digitalWrite(SHIFT_REG_INPUT, HIGH);
+    } else {
+      digitalWrite(SHIFT_REG_INPUT, LOW);
+    }
+    delay(1);
+
+    digitalWrite(SHIFT_REG_CLK_PIN, LOW);
+    delay(10);
+    digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
+    delay(10);
+  }
+  delay(250);
 }
