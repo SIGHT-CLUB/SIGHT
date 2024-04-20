@@ -2,6 +2,8 @@
 
 #ifndef IR_MODULE_H
 #define IR_MODULE_H
+#define SHIFT_REG_INPUT 8
+#define SHIFT_REG_CLK_PIN 9
 
 #define IR_RECEIVE_PIN 3
 #define IR_LED 5
