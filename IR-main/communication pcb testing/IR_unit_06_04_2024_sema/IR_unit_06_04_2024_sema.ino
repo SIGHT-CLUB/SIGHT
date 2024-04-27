@@ -18,9 +18,18 @@ void setup() {
   set_active_s(4);
 }
 
+uint8_t active_s = 4;
+
 void loop() {
-communication_test();
-//communication();
+
+set_active_s(active_s);
+
+// communication_test();
+communication();
+
+active_s = active_s + 1;
+if (active_s == 8){active_s = 0;}
+
 }
 
 void communication() {
