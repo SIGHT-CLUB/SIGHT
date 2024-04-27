@@ -86,7 +86,7 @@ uint8_t listen_IR() {
   unsigned long listen_start_time = millis();
   uint8_t is_received = 0;
   while (millis() - listen_start_time < LISTEN_DURATION_MS) {
-    if (digitalRead(IR_RECEIVE_PIN) == 0) {
+    if (digitalRead(IR_RECEIVE_PIN) == 1) {
       is_received = 1;
       break;
     }
@@ -98,8 +98,13 @@ uint8_t listen_IR() {
     unsigned long listen_starts = micros();
     for (uint8_t i = 0; i < (NUMBER_OF_PACKAGE_BYTES * 8); i++) {
       uint8_t byte_no = i / 8;
-
-      IR_module_buffer[byte_no] = (IR_module_buffer[byte_no] << 1) + digitalRead(IR_RECEIVE_PIN);
+      uint8_t read_bit = digitalRead(IR_RECEIVE_PIN);
+      if (read_bit == 1){
+        read_bit = 0;
+      }else{
+        read_bit = 1;
+      }
+      IR_module_buffer[byte_no] = (IR_module_buffer[byte_no] << 1) + read_bit;
       while (micros() < listen_starts + (i + 1) * TRIGGER_DURATION_US) {
         continue;
       }
@@ -109,17 +114,18 @@ uint8_t listen_IR() {
     uint8_t CRC_SIG = CRC_16 >> 8;
     uint8_t CRC_LST = CRC_16 % 256;
     if (IR_module_buffer[NUMBER_OF_PACKAGE_BYTES - 1] == CRC_LST && IR_module_buffer[NUMBER_OF_PACKAGE_BYTES - 2] == CRC_SIG) {
-      // for (uint8_t i = 0; i < NUMBER_OF_PACKAGE_BYTES; i++) {
-      //   Serial.print(IR_module_buffer[i]);
-      //   Serial.print(' ');
-      // }
-      // Serial.println();
+      for (uint8_t i = 0; i < NUMBER_OF_PACKAGE_BYTES; i++) {
+        Serial.print(IR_module_buffer[i]);
+        Serial.print(' ');
+      }
+      Serial.println();
       return 1;  //Package is valid. return 1
     } else {
-      // Serial.println("Package corrupted");
+      Serial.println("Package corrupted");
       return 2;  // CRC check is failed. return 2
     }
   }
+
   return 0;  // No signal is detected. return 0
 }
 
