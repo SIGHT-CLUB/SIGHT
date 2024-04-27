@@ -68,7 +68,7 @@ void listen_test(){
   Serial.println("\n Currently Listening for Ping or Ack...");
 
   // set the listen time
-  unsigned long listen_duration = 140;
+  unsigned long listen_duration = 300;
   // Serial.println("\nThe random number is: ");
 
   // check the time to listen
