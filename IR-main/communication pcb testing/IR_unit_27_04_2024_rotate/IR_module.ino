@@ -11,6 +11,7 @@ void initialize_IR_module() {
 }
 
 // =============================================================
+
 uint16_t get_number_of_package_bytes() {
   return NUMBER_OF_PACKAGE_BYTES;
 }
@@ -61,7 +62,7 @@ unsigned long TRANSMISSION_START_TIME = 0;
 
 void transmit_zero() {
   TRANSMISSION_START_TIME = micros();
-  while (micros() - TRANSMISSION_START_TIME < (TRIGGER_DURATION_US-30)) {
+  while (micros() - TRANSMISSION_START_TIME < (TRIGGER_DURATION_US - 30)) {
     // 32 us
     digitalWrite(IR_LED, HIGH);
     delayMicroseconds(BURST_HALF_PERIOD_US);
@@ -74,18 +75,73 @@ void transmit_one() {
   TRANSMISSION_START_TIME = micros();
   // 12 us
   digitalWrite(IR_LED, LOW);
-  delayMicroseconds(TRIGGER_DURATION_US-10);
+  delayMicroseconds(TRIGGER_DURATION_US - 10);
+}
+
+void set_active_s_IR(uint8_t pick_this_s) {
+  int led_to_i_mapping[9] = { 4, 5, 6, 7, 0, 1, 2, 3, 999 };  // do not alter, physically linked
+  digitalWrite(SHIFT_REG_INPUT, LOW);
+  for (uint8_t i = 0; i < 8; i++) {
+    if (i == led_to_i_mapping[pick_this_s]) {
+      digitalWrite(SHIFT_REG_INPUT, HIGH);
+    } else {
+      digitalWrite(SHIFT_REG_INPUT, LOW);
+    }
+    digitalWrite(SHIFT_REG_CLK_PIN, LOW);
+    digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
+  }
+}
+void shift_reg_insert_zero() {
+  PORTB = PORTB & B11111110; //define SHIFT_REG_INPUT 8 (portb-0)->LOW
+  //digitalWrite(SHIFT_REG_INPUT, LOW);
+  delayMicroseconds(1);
+
+  PORTB = PORTB & B11111101; //#define SHIFT_REG_CLK_PIN 9 (portb-1)->LOW
+  //digitalWrite(SHIFT_REG_CLK_PIN, LOW);
+  delayMicroseconds(1);
+
+  PORTB = PORTB | B00000010; //#define SHIFT_REG_CLK_PIN 9 (portb-1)->HIGH
+  //digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
+  delayMicroseconds(1);
+}
+
+void shift_reg_insert_one() {
+  PORTB = PORTB | B00000001; //define SHIFT_REG_INPUT 8 (portb-0)->HIGH
+  //digitalWrite(SHIFT_REG_INPUT, LOW);
+  delayMicroseconds(1);
+
+  PORTB = PORTB & B11111101; //#define SHIFT_REG_CLK_PIN 9 (portb-1)->LOW
+  //digitalWrite(SHIFT_REG_CLK_PIN, LOW);
+  delayMicroseconds(1);
+
+  PORTB = PORTB | B00000010; //#define SHIFT_REG_CLK_PIN 9 (portb-1)->HIGH
+  //digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
+  delayMicroseconds(1);
+}
+
+void zero_shift_register() {
+  for (uint8_t i = 0; i < 8; i++) {
+    shift_reg_insert_zero();
+  }
 }
 
 uint8_t listen_IR() {
+  digitalWrite(IR_LED, LOW);
 
   unsigned long listen_start_time = millis();
   uint8_t is_received = 0;
+
+  zero_shift_register();
   while (millis() - listen_start_time < LISTEN_DURATION_MS) {
-    if (digitalRead(IR_RECEIVE_PIN) == 1) {
-      is_received = 1;
-      break;
+    shift_reg_insert_one();
+    for (uint8_t i = 0; i < 8; i++) {
+      if (digitalRead(IR_RECEIVE_PIN) == 1) {
+        is_received = 1;
+        break;
+      }
+      shift_reg_insert_zero();
     }
+    if (is_received)break;
   }
 
   //check if transmission is detected
@@ -95,9 +151,9 @@ uint8_t listen_IR() {
     for (uint8_t i = 0; i < (NUMBER_OF_PACKAGE_BYTES * 8); i++) {
       uint8_t byte_no = i / 8;
       uint8_t read_bit = digitalRead(IR_RECEIVE_PIN);
-      if (read_bit == 1){
+      if (read_bit == 1) {
         read_bit = 0;
-      }else{
+      } else {
         read_bit = 1;
       }
       IR_module_buffer[byte_no] = (IR_module_buffer[byte_no] << 1) + read_bit;
