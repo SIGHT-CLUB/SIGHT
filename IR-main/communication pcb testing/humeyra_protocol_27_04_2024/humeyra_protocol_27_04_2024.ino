@@ -33,9 +33,8 @@ set_active_s(active_s);
 ping_test();
 listen_test();
 
-active_s = active_s + 1;
-if (active_s == 8){active_s = 0;}
-
+//active_s = active_s + 1;
+//if (active_s == 8){active_s = 0;}
 }
 
 
