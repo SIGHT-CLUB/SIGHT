@@ -22,13 +22,13 @@ uint8_t active_s = 4;
 
 void loop() {
 
-set_active_s(active_s);
+//set_active_s(active_s);
 
-// communication_test();
+ //communication_test();
 communication();
 
-active_s = active_s + 1;
-if (active_s == 8){active_s = 0;}
+//active_s = active_s + 1;
+//if (active_s == 8){active_s = 0;}
 
 }
 
@@ -68,7 +68,7 @@ void listen_test(){
   Serial.println("\n Currently Listening for Ping or Ack...");
 
   // set the listen time
-  unsigned long listen_duration = 1000;
+  unsigned long listen_duration = 300;
   // Serial.println("\nThe random number is: ");
 
   // check the time to listen
@@ -210,7 +210,7 @@ void listen_for_data_test(){
   Serial.println("\n Currently Listening for Data...");
 
   // set the listen time for data
-  unsigned long listen_duration = 2000;
+  unsigned long listen_duration = 600;
   // Serial.println("\nThe random number is: ");
 
   //check the time to listen for data
