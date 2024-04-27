@@ -68,7 +68,7 @@ void listen_test(){
   Serial.println("\n Currently Listening for Ping or Ack...");
 
   // set the listen time
-  unsigned long listen_duration = 300;
+  unsigned long listen_duration = 1000;
   // Serial.println("\nThe random number is: ");
 
   // check the time to listen
@@ -197,8 +197,8 @@ void transmit_data(){
   }
 
   mode_of_operation = 0; // change to listen mode
-
 }
+
 
 void listen_for_data_test(){
   //check the mode of operation
@@ -210,7 +210,7 @@ void listen_for_data_test(){
   Serial.println("\n Currently Listening for Data...");
 
   // set the listen time for data
-  unsigned long listen_duration = 1000;
+  unsigned long listen_duration = 2000;
   // Serial.println("\nThe random number is: ");
 
   //check the time to listen for data
