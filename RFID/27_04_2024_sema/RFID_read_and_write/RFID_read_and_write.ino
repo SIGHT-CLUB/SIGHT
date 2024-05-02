@@ -5,7 +5,7 @@
 #define SS_PIN 10
 
 MFRC522 rfid(SS_PIN, RST_PIN);
-byte block = 13;
+byte block = 14;
 
 void setup() {
   Serial.begin(9600);
@@ -20,7 +20,7 @@ void loop() {
     Serial.println("Card detected!");
     Serial.println("Type 'W' to write or 'R' to read:");
 
-    if (waitForInput(5000)) {  // Wait for 5 seconds for input
+    if (waitForInput(2000)) {  // Wait for 5 seconds for input
       char input = Serial.read();  // Read the choice of operation
       clearSerialBuffer();
 

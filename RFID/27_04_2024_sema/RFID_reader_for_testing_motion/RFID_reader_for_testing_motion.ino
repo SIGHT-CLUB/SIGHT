@@ -38,7 +38,7 @@ void rfid_read(){
 }
 
 uint8_t readFromCard() {
-  byte block = 2;
+  byte block = 14;
   byte buffer[18];
   byte size = sizeof(buffer);
   MFRC522::MIFARE_Key key;
