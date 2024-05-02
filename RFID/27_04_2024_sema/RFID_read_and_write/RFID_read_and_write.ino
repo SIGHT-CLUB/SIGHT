@@ -5,6 +5,7 @@
 #define SS_PIN 10
 
 MFRC522 rfid(SS_PIN, RST_PIN);
+byte block = 13;
 
 void setup() {
   Serial.begin(9600);
@@ -44,7 +45,7 @@ void loop() {
     }
 
     Serial.println("Place the card to the reader...");
-    rfid.PICC_HaltA(); // Halt PICC
+    // rfid.PICC_HaltA(); // Halt PICC
     rfid.PCD_StopCrypto1(); // Stop encryption on PCD
   }
 }
@@ -53,7 +54,6 @@ void writeToCard(int x, int y) {
   MFRC522::MIFARE_Key key;
   for (byte i = 0; i < 6; i++) key.keyByte[i] = 0xFF;
 
-  byte block = 13;
   byte dataBlock[] = {
     (byte)x, (byte)y, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
   };
@@ -71,7 +71,6 @@ void writeToCard(int x, int y) {
 }
 
 void readFromCard() {
-  byte block = 2;
   byte buffer[18];
   byte size = sizeof(buffer);
 
