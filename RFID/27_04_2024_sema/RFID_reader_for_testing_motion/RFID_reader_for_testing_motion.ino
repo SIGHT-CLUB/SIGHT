@@ -3,10 +3,18 @@
 
 #define RST_PIN 9
 #define SS_PIN 10
+#define TALK_PIN 8
+#define ISRESET_PIN 3
 
 MFRC522 rfid(SS_PIN, RST_PIN);
 
 void setup() {
+  pinMode(ISRESET_PIN, OUTPUT);
+  digitalWrite(ISRESET_PIN, HIGH);
+  delay(5000);
+  digitalWrite(ISRESET_PIN, LOW);
+  pinMode(TALK_PIN, OUTPUT);
+  digitalWrite(TALK_PIN, LOW);
   Serial.begin(9600);
   SPI.begin();
   rfid.PCD_Init();
@@ -23,6 +31,8 @@ void loop() {
 }
 
 void rfid_read(){
+  
+  uint8_t coordinateCode_old = 0;
 
     if (rfid.PICC_IsNewCardPresent() && rfid.PICC_ReadCardSerial()) {
     isCardDetected = 1;
@@ -30,10 +40,17 @@ void rfid_read(){
     coordinateCode = readFromCard();  // Get the coordinate code
     //Serial.print("Mapped Coordinate Code: ");
     //Serial.println(coordinateCode);
+
+    digitalWrite(TALK_PIN, HIGH);
     Serial.print(coordinateCode);
+    delay(1000);
+    digitalWrite(TALK_PIN, LOW);
+
   }
+  coordinateCode_old = coordinateCode;
+
   //Serial.println("Place the card to the reader...");
-  // rfid.PICC_HaltA(); // Halt PICC
+  rfid.PICC_HaltA(); // Halt PICC
   rfid.PCD_StopCrypto1(); // Stop encryption on PCD
 }
 
