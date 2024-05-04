@@ -8,8 +8,10 @@ uint8_t analog_pins[6] = { A0, A1, A2, A3, A4, A5 };  // A0-> 2 (left) A5->7 (ri
 #define leftMotorPWM 10
 #define left_pwm_normalizer 0.75
 #define LED_PIN 13
+#define LISTEN  2
+#define ISRESETTED 13
 float last_position = 0;
-uint8_t base_pwm = 75;
+uint8_t base_pwm = 90;
 int intersection = 0;
 uint8_t is_black[6] = { 0, 0, 0, 0, 0, 0 };
 int stop = 0;
@@ -22,6 +24,11 @@ int receivedValue = 0;
 */
 void setup() {
   Serial.begin(9600);
+  Serial.println("resetted!!!");
+  pinMode(ISRESETTED, OUTPUT);
+  digitalWrite(ISRESETTED, HIGH);
+  delay(300);
+  digitalWrite(ISRESETTED, LOW);
   pinMode(LED_PIN, OUTPUT);
   pinMode(rightMotor1, OUTPUT);
   pinMode(rightMotor2, OUTPUT);
@@ -29,6 +36,7 @@ void setup() {
   pinMode(leftMotor1, OUTPUT);
   pinMode(leftMotor2, OUTPUT);
   pinMode(leftMotorPWM, OUTPUT);
+  pinMode(LISTEN, INPUT);
 
   for (uint8_t i = 0; i < 6; i++) {
     pinMode(analog_pins[i], INPUT);
@@ -36,14 +44,27 @@ void setup() {
 }
 
 unsigned int threshold = 900;  // Threshold for detecting black
-
-
-
-
+uint8_t indicator = 0;
 
 
 void loop() {
 
+  uint8_t listen_result_1 = digitalRead(LISTEN);
+  uint8_t listen_result_2 = 0;
+
+  if(listen_result_1==1){
+  delay(300);
+  listen_result_2 = digitalRead(LISTEN);
+  }
+  uint8_t listen_result = listen_result_1 && listen_result_2;
+  Serial.println(listen_result);
+
+  if (listen_result==1){
+
+    indicator = 1;    
+    stop_mu();
+    delay(2000);
+  }
 
   if (Serial.available() > 0) {         // Check if data is available to read
     receivedValue = Serial.parseInt();  // Read the incoming value
@@ -54,7 +75,6 @@ void loop() {
   //2 = sag
   //3=sol
   //4=forward
-
 
   if (receivedValue == 2) {
 
@@ -76,17 +96,13 @@ void loop() {
     receivedValue = 0;
   } 
 
-
-
   update_black_detections(threshold);
   //Serial.println(get_line_pos());
-  test_print_is_black_array();  // This will be deleted
-  float line_position = get_line_pos();
+  test_print_is_black_array(); 
+  float line_position=get_line_pos() ;// This will be deleted
   move(line_position);
+
 }
-
-
-
 
 
 void move(int line_position) {
@@ -99,7 +115,6 @@ void move(int line_position) {
       rotate_ccw();
     }
   }
-
 
   else if (line_position > 0) {
     int right_pwm = int(base_pwm * right_pwm_normalizer);
@@ -225,4 +240,15 @@ void rotate_ccw() {
   digitalWrite(rightMotor1, HIGH);
   digitalWrite(rightMotor2, LOW);
   analogWrite(rightMotorPWM, base_pwm);
+
+}
+
+void stop_mu()  {
+
+  digitalWrite(leftMotor1, LOW);
+  digitalWrite(leftMotor2, LOW);
+
+  digitalWrite(rightMotor1, LOW);
+  digitalWrite(rightMotor2, LOW);
+
 }
