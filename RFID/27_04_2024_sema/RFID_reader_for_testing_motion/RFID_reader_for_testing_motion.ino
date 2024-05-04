@@ -11,7 +11,7 @@ MFRC522 rfid(SS_PIN, RST_PIN);
 void setup() {
   pinMode(ISRESET_PIN, OUTPUT);
   digitalWrite(ISRESET_PIN, HIGH);
-  delay(5000);
+  delay(2000);
   digitalWrite(ISRESET_PIN, LOW);
   pinMode(TALK_PIN, OUTPUT);
   digitalWrite(TALK_PIN, LOW);
@@ -22,7 +22,7 @@ void setup() {
 }
 
 uint8_t isCardDetected = 0;
-uint8_t coordinateCode = 0;  // Variable to store the mapped coordinate code
+uint8_t coded_coordinates = 0;  // Variable to store the mapped coordinate code
 
 void loop() {
   rfid_read();
@@ -31,23 +31,20 @@ void loop() {
 }
 
 void rfid_read(){
-  
-  uint8_t coordinateCode_old = 0;
 
     if (rfid.PICC_IsNewCardPresent() && rfid.PICC_ReadCardSerial()) {
     isCardDetected = 1;
     //Serial.println("Card detected!");
-    coordinateCode = readFromCard();  // Get the coordinate code
+    coded_coordinates = readFromCard();  // Get the coordinate code
     //Serial.print("Mapped Coordinate Code: ");
     //Serial.println(coordinateCode);
 
     digitalWrite(TALK_PIN, HIGH);
-    Serial.print(coordinateCode);
+    Serial.write(coded_coordinates);
     delay(1000);
     digitalWrite(TALK_PIN, LOW);
 
   }
-  coordinateCode_old = coordinateCode;
 
   //Serial.println("Place the card to the reader...");
   rfid.PICC_HaltA(); // Halt PICC
@@ -71,21 +68,16 @@ uint8_t readFromCard() {
     Serial.println("Read failed");
     return 0;
   } else {
-    int x = buffer[0];
-    int y = buffer[1];
+    uint8_t x = buffer[0];
+    uint8_t y = buffer[1];
+    uint8_t coded_coordinates = x*16 + y;
     //Serial.print("Read Coordinates: (");
     //Serial.print(x);
     //Serial.print(", ");
     //Serial.print(y);
     //Serial.println(")");
 
-    // Mapping coordinates to specific codes
-    if (x == 1 && y == 1) return 1;
-    if (x == 1 && y == 2) return 2;
-    if (x == 2 && y == 1) return 3;
-    if (x == 2 && y == 2) return 4;
-
-    return 0;  // Return 0 if coordinates don't match any predefined pairs
+    return coded_coordinates;  // Return 0 if coordinates don't match any predefined pairs
   }
 }
 
