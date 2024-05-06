@@ -1,19 +1,26 @@
+#define SHUNT_FEEDBACK_PIN A0
 #define M1_ENABLE 3
 #define M1_A 4
 #define M1_B 5
-#define M1_R 5.7     //armature resistance of the motor
+#define M1_R 5.7    //armature resistance of the motor
 #define M1_kb 0.02  // motor back emf constant (V per rpm), as increased, RPM is decreased
 #define M2_ENABLE 11
 #define M2_A 12
 #define M2_B 13
 #define M2_R 5.7                        //armature resistance of the motor
-#define M2_kb 0.02                   // motor back emf constant (V per rpm), as increased, RPM is decreased
+#define M2_kb 0.02                      // motor back emf constant (V per rpm), as increased, RPM is decreased
 #define MOTOR_IN_SERIES_RESISTANCE 0.5  // The resitance in series with the H bridge. (i.e. ~shunt resistor)
+
+uint8_t line_follower_analog_pins[7] = { A1, A2, A3, A4, A5, A6, A7 };
 
 float BATTERY_VOLTAGE = 0;  //measured only once at the start-up
 void setup() {
   Serial.begin(9600);
-  pinMode(A0, INPUT);
+
+  for (uint8_t i = 0; i < 7; i++) {
+    pinMode(line_follower_analog_pins[i], INPUT);
+  }
+  pinMode(SHUNT_FEEDBACK_PIN, INPUT);
   pinMode(M1_ENABLE, OUTPUT);
   pinMode(M1_A, OUTPUT);
   pinMode(M1_B, OUTPUT);
@@ -30,10 +37,87 @@ void setup() {
   delay(5000);
 }
 
+
+
+
 void loop() {
-  drive_motors_at_constant_RPM(100, 100);
+  update_black_detections(750);
+  print_is_black_array();
+  float line_pos = get_straight_line_position();
+
+  Serial.println(line_pos);
+  delay(250);
 }
 
+uint8_t is_black[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };  // D1 to D8 where D8 is not utilized.
+uint8_t update_black_detections(int black_threshold) {
+  //uint8_t line_follower_analog_pins[7] = {A1, A2, A3, A4, A5, A6, A7}; // A1-> D1, A2->D2 (left) A7->D7 (right)Define the analog input pins
+  //D1 is the Leftmost, D8 id the rightmost sensor
+
+  for (uint8_t i = 0; i < 7; i++) {
+    int analog_value = analogRead(line_follower_analog_pins[i]);
+    Serial.println(analog_value);
+    uint8_t digital_val = 0;
+    if (analog_value > black_threshold) digital_val = 1;
+    is_black[i] = digital_val;
+  }
+}
+
+void print_is_black_array() {
+  for (uint8_t i = 0; i < 8; i++) {
+    Serial.print(String(is_black[i]) + ", ");
+  }
+  Serial.println();
+}
+
+float get_straight_line_position() {
+  static float line_position = 0;
+  
+  float line_pos_values[8] = { -4, -3, -2, -1, 1, 2, 3, 4 };
+
+  float line_position_candidate = 0;
+  uint8_t number_of_additions = 0;
+  for (uint8_t i = 1; i < 8; i++) {
+    line_position_candidate += line_pos_values[i]*is_black[i];
+    if(is_black[i])number_of_additions+=1;
+  }
+
+  if (number_of_additions>0){ // t
+    line_position = line_position_candidate/number_of_additions;
+  }
+
+
+  return line_position;
+}
+
+void move_test() {
+  for (uint8_t i = 0; i < 4; i++) {
+    unsigned long start_time = millis();
+    while (millis() - start_time < 400) {
+      drive_motors_at_constant_RPM(125, 125);
+    }
+    delay(2100);
+
+    start_time = millis();
+    while (millis() - start_time < 400) {
+      drive_motors_at_constant_RPM(0, 0);
+    }
+    delay(600);
+
+    start_time = millis();
+    while (millis() - start_time < 400) {
+      drive_motors_at_constant_RPM(-75, 75);
+    }
+
+    start_time = millis();
+    while (millis() - start_time < 400) {
+      drive_motors_at_constant_RPM(0, 0);
+    }
+    delay(600);
+  }
+
+  delay(2500);
+}
 float return_shunt_voltage_measurement() {
   int reading = analogRead(A0);
   float voltage = 0.00989736 * (reading);  //V
@@ -123,5 +207,5 @@ void drive_motors_at_constant_RPM(float DESIRED_M1_RPM, float DESIRED_M2_RPM) {
 
   analogWrite(M1_ENABLE, M1_PWM);
   analogWrite(M2_ENABLE, M2_PWM);
-  delay(100);
+  delay(25);
 }
