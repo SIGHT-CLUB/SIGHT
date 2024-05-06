@@ -39,30 +39,46 @@ void setup() {
 
 
 
+float base_speed = 75;
 
 void loop() {
-  update_black_detections(750);
-  print_is_black_array();
-  float line_pos = get_straight_line_position();
 
-  Serial.println(line_pos);
-  delay(250);
+  //Turn right
 }
 
+void test_go_straight() {
+  //Go straight
+  while (true) {
+    update_black_detections(750);
+    if (get_number_of_black_detections() == 0) break;
+    float line_pos = get_straight_line_position();
+
+    float proportional = 5;
+    float del_speed = line_pos * proportional;
+    float right_speed = base_speed + del_speed;
+    float left_speed = base_speed - del_speed;
+    Serial.println(line_pos);
+    Serial.println(right_speed);
+    Serial.println(left_speed);
+    drive_motors_at_constant_RPM(left_speed, right_speed);
+  }
+  delay(50);
+  drive_motors_at_constant_RPM(0, 0);
+  delay(1000);
+}
 uint8_t is_black[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };  // D1 to D8 where D8 is not utilized.
+
 uint8_t update_black_detections(int black_threshold) {
   //uint8_t line_follower_analog_pins[7] = {A1, A2, A3, A4, A5, A6, A7}; // A1-> D1, A2->D2 (left) A7->D7 (right)Define the analog input pins
   //D1 is the Leftmost, D8 id the rightmost sensor
 
   for (uint8_t i = 0; i < 7; i++) {
     int analog_value = analogRead(line_follower_analog_pins[i]);
-    Serial.println(analog_value);
     uint8_t digital_val = 0;
     if (analog_value > black_threshold) digital_val = 1;
     is_black[i] = digital_val;
   }
 }
-
 void print_is_black_array() {
   for (uint8_t i = 0; i < 8; i++) {
     Serial.print(String(is_black[i]) + ", ");
@@ -70,26 +86,33 @@ void print_is_black_array() {
   Serial.println();
 }
 
+uint8_t get_number_of_black_detections() {
+  uint8_t number_of_blacks = 0;
+  for (uint8_t i = 1; i < 8; i++) {
+    if (is_black[i] == 1) number_of_blacks += 1;
+  }
+  return number_of_blacks;
+}
+
 float get_straight_line_position() {
   static float line_position = 0;
-  
+
   float line_pos_values[8] = { -4, -3, -2, -1, 1, 2, 3, 4 };
 
   float line_position_candidate = 0;
   uint8_t number_of_additions = 0;
   for (uint8_t i = 1; i < 8; i++) {
-    line_position_candidate += line_pos_values[i]*is_black[i];
-    if(is_black[i])number_of_additions+=1;
+    line_position_candidate += line_pos_values[i] * is_black[i];
+    if (is_black[i]) number_of_additions += 1;
   }
 
-  if (number_of_additions>0){ // t
-    line_position = line_position_candidate/number_of_additions;
+  if (number_of_additions > 0) {  // t
+    line_position = line_position_candidate / number_of_additions;
   }
 
 
   return line_position;
 }
-
 void move_test() {
   for (uint8_t i = 0; i < 4; i++) {
     unsigned long start_time = millis();
@@ -124,25 +147,25 @@ float return_shunt_voltage_measurement() {
   return voltage;
 }
 void drive_motors_at_constant_RPM(float DESIRED_M1_RPM, float DESIRED_M2_RPM) {
-  uint8_t TIMEOUT_MS = 50;
+  uint8_t TIMEOUT_MS = 20;
   uint8_t APPLY_FULL_PERIOD = 5;  //how many miliseconds the full on/off is applied;
   int M1_approximated_rpm = 0;
   int M2_approximated_rpm = 0;
 
   // Set the directions of the motors
   if (DESIRED_M1_RPM > 0) {
-    digitalWrite(M1_A, HIGH);
-    digitalWrite(M1_B, LOW);
-  } else {
     digitalWrite(M1_A, LOW);
     digitalWrite(M1_B, HIGH);
+  } else {
+    digitalWrite(M1_A, HIGH);
+    digitalWrite(M1_B, LOW);
   }
   if (DESIRED_M2_RPM > 0) {
-    digitalWrite(M2_A, LOW);
-    digitalWrite(M2_B, HIGH);
-  } else {
     digitalWrite(M2_A, HIGH);
     digitalWrite(M2_B, LOW);
+  } else {
+    digitalWrite(M2_A, LOW);
+    digitalWrite(M2_B, HIGH);
   }
 
   DESIRED_M1_RPM = abs(DESIRED_M1_RPM);  //since direcion information is already utilized, only the magnitude is required.
