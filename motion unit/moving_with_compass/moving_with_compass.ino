@@ -41,47 +41,21 @@ void setup() {
 
 
 void loop() {
-  //float angle = return_angle();
-  //Serial.println(angle);
+  // float angle = return_angle();
+  // Serial.println(angle);
 
-  float deviation = return_angle_deviation(210);
-  Serial.println(deviation);
+  int a = compass.getAzimuth();
+  Serial.println(a);
+  // float deviation = return_angle_deviation(210);
+  // Serial.println(deviation);
 
-  int base_pwm_zaa = 75;
-  float kp = 3.5;
   
-  
-  if (deviation < 0) {
-
-    int corrected_pwm_left = (base_pwm_zaa* left_pwm_normalizer + abs(deviation)*kp);
-   if(corrected_pwm_left > 255){
-    corrected_pwm_left = 255;
-   }
-    //pwoer up right
-    digitalWrite(rightMotor1, HIGH);
-    digitalWrite(rightMotor2, LOW);
-    analogWrite(rightMotorPWM, int(base_pwm_zaa*right_pwm_normalizer));
-    digitalWrite(leftMotor1, LOW);
-    digitalWrite(leftMotor2, HIGH);
-    analogWrite(leftMotorPWM, int((corrected_pwm_left)));
-  } else {
-     int corrected_pwm_r = (base_pwm_zaa* right_pwm_normalizer + abs(deviation)*kp);
-   if(corrected_pwm_r > 255){
-    corrected_pwm_r = 255;
-   }
-    digitalWrite(rightMotor1, HIGH);
-    digitalWrite(rightMotor2, LOW);
-    analogWrite(rightMotorPWM, int((corrected_pwm_r)));
-    digitalWrite(leftMotor1, LOW);
-    digitalWrite(leftMotor2, HIGH);
-    analogWrite(leftMotorPWM, int(base_pwm_zaa*left_pwm_normalizer));
-  }
 
 }
 
 float return_angle() {
   //https://stackoverflow.com/questions/57120466/how-to-calculate-azimuth-from-x-y-z-values-from-magnetometer
-  int MEAN_COUNT = 5;
+  int MEAN_COUNT =1;
 
   int x = 0;
   int y = 0;
@@ -119,6 +93,7 @@ float return_angle() {
   }
 
   return bearing;
+  delay(50);
 }
 
 float return_angle_deviation(float desired_angle) {
