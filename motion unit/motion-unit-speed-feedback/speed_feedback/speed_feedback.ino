@@ -37,35 +37,62 @@ void setup() {
   delay(5000);
 }
 
-
-
-float base_speed = 75;
+float base_speed = 65;
 
 void loop() {
-
-  //Turn right
+  test_go_straight();
+  test_go_right();
 }
 
-void test_go_straight() {
-  //Go straight
+void test_go_right() {
+  //Go right
+  unsigned long start_time = millis();
+
+
+  //turn right until current line is lost
+  update_black_detections(750);
+  while(get_number_of_black_detections() > 0) {
+    drive_motors_at_constant_RPM(-50, 50);
+    update_black_detections(750);
+  }
+
+  //turn right until next line is found
+  while (get_number_of_black_detections() == 0) {
+    drive_motors_at_constant_RPM(-50, 50);
+    update_black_detections(750);
+  }
+
+  //One of the sensors is found a black line. Turn right (open loop) a little bit so that line is in the middle
+  drive_motors_at_constant_RPM(-50, 50);
+  delay(125);
+  halt_motors();
+
+  delay(500);
+}
+
+void test_go_straight() {  //Go straight
+
+  unsigned long start_time = millis();
   while (true) {
     update_black_detections(750);
-    if (get_number_of_black_detections() == 0) break;
+
+    if(millis()-start_time > 500){
+      if (get_number_of_black_detections() == 0) break;
+    }
+
     float line_pos = get_straight_line_position();
 
-    float proportional = 5;
-    float del_speed = line_pos * proportional;
+    float proportional = 4;
+    float del_speed = proportional * line_pos;
     float right_speed = base_speed + del_speed;
     float left_speed = base_speed - del_speed;
-    Serial.println(line_pos);
-    Serial.println(right_speed);
-    Serial.println(left_speed);
     drive_motors_at_constant_RPM(left_speed, right_speed);
   }
-  delay(50);
-  drive_motors_at_constant_RPM(0, 0);
-  delay(1000);
+  delay(175);
+  halt_motors();
+  delay(500);
 }
+
 uint8_t is_black[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };  // D1 to D8 where D8 is not utilized.
 
 uint8_t update_black_detections(int black_threshold) {
@@ -146,6 +173,12 @@ float return_shunt_voltage_measurement() {
   float voltage = 0.00989736 * (reading);  //V
   return voltage;
 }
+
+void halt_motors() {
+  digitalWrite(M1_ENABLE, LOW);
+  digitalWrite(M2_ENABLE, LOW);
+}
+
 void drive_motors_at_constant_RPM(float DESIRED_M1_RPM, float DESIRED_M2_RPM) {
   uint8_t TIMEOUT_MS = 20;
   uint8_t APPLY_FULL_PERIOD = 5;  //how many miliseconds the full on/off is applied;
