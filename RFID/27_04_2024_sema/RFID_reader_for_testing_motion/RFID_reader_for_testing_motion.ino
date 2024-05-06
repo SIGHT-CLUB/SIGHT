@@ -21,19 +21,16 @@ void setup() {
   //Serial.println("Place the card to the reader...");
 }
 
-uint8_t isCardDetected = 0;
 uint8_t coded_coordinates = 0;  // Variable to store the mapped coordinate code
 
 void loop() {
   rfid_read();
   delay(100);
-  isCardDetected = 0;
 }
 
 void rfid_read(){
 
     if (rfid.PICC_IsNewCardPresent() && rfid.PICC_ReadCardSerial()) {
-    isCardDetected = 1;
     //Serial.println("Card detected!");
     coded_coordinates = readFromCard();  // Get the coordinate code
     //Serial.print("Mapped Coordinate Code: ");
