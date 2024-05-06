@@ -35,6 +35,7 @@ void stop_mu();
 */
 void setup() {
   Serial.begin(9600);
+  compass.init();
   Serial.println("resetted!!!");
   pinMode(ISRESETTED, OUTPUT);
   digitalWrite(ISRESETTED, HIGH);
