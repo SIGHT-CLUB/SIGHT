@@ -11,7 +11,8 @@
 #define leftMotor2 5
 #define leftMotorPWM 10
 #define left_pwm_normalizer 1
-uint8_t base_pwm = 70;
+#define threshold=3;
+uint8_t base_pwm = 90;
 QMC5883LCompass compass;
 float reference;
 float return_angle();
@@ -28,22 +29,20 @@ void setup() {
   pinMode(leftMotor1, OUTPUT);
   pinMode(leftMotor2, OUTPUT);
   pinMode(leftMotorPWM, OUTPUT);
-  reference=return_angle();
-
+  delay(50);
+  reference = return_angle();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  
+
   //float angle = return_angle();
   //Serial.println(angle);
 
- // float  desired_angle=(angle+90)%360;
-  float deviation = return_angle_deviation(reference);
-  Serial.println(deviation);
-  move(deviation);
+  // float  desired_angle=(angle+90)%360;
+  //Serial.println(deviation);
+  move(reference);
   //rotate_ccw();
-
 }
 
 
@@ -103,19 +102,48 @@ float return_angle_deviation(float desired_angle) {
   return angle_deviation;
 }
 
-void move(float angle_error) {
+void move(float desired_angle) {
 
-  if (-30< angle_error && angle_error < 30) {
-    
+  float angle_error = return_angle_deviation(desired_angle);
+
+  if (angle_error <= -7) {
+
+    while (true) {
+      float zaa2 = return_angle_deviation(desired_angle);
+      Serial.println("yiğit"+String(zaa2));
+      if (zaa2 > 0) {
+        break;
+      }
+      stopmotor();
+      delay(50);
+      rotate_cw();
+      delay(50);
+      stopmotor();
+      delay(50);
+    }
+
+  } else if (-7< angle_error && angle_error < 7) {
+
     angle_error = -angle_error;
-    int right_pwm = int((base_pwm+ 4 * angle_error) * right_pwm_normalizer);
+    int right_pwm = int((base_pwm + 4 * angle_error) * right_pwm_normalizer);
     int left_pwm = int((base_pwm + 4 * angle_error) * left_pwm_normalizer);
     drive_left_motor_at(left_pwm, 25, 3);
     drive_right_motor_at(right_pwm, 25, 3);
-    Serial.println("solmotorhızlandı");
-  } else {
-    stopmotor();
-
+    Serial.println("berfin"+String(angle_error));
+  } else if (angle_error >= 7) {
+    while (true) {
+      float zaa = return_angle_deviation(desired_angle);
+      if (zaa < 0) {
+        break;
+      }
+      Serial.println("erdem "+String(zaa));
+      stopmotor();
+      delay(50);
+      rotate_ccw();
+      delay(50);
+      stopmotor();
+      delay(50);
+    }
   }
 }
 
@@ -174,8 +202,8 @@ void drive_left_motor_at(int pwm_val, int update_period_ms, uint8_t delta_pwm_pe
   }
 }
 
-  
-  void rotate_ccw() {
+
+void rotate_ccw() {
   digitalWrite(leftMotor1, LOW);
   digitalWrite(leftMotor2, HIGH);
   analogWrite(leftMotorPWM, base_pwm);
