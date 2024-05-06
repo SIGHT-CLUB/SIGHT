@@ -1,82 +1,127 @@
 #define M1_ENABLE 3
 #define M1_A 4
 #define M1_B 5
-#define M1_R 5.6  //armature resistance of the motor
-#define M1_kb 0.02  // motor back emf constant (V per rpm)
+#define M1_R 5.7     //armature resistance of the motor
+#define M1_kb 0.02  // motor back emf constant (V per rpm), as increased, RPM is decreased
+#define M2_ENABLE 11
+#define M2_A 12
+#define M2_B 13
+#define M2_R 5.7                        //armature resistance of the motor
+#define M2_kb 0.02                   // motor back emf constant (V per rpm), as increased, RPM is decreased
+#define MOTOR_IN_SERIES_RESISTANCE 0.5  // The resitance in series with the H bridge. (i.e. ~shunt resistor)
 
-
-float battery_voltage = 0;
+float BATTERY_VOLTAGE = 0;  //measured only once at the start-up
 void setup() {
   Serial.begin(9600);
   pinMode(A0, INPUT);
   pinMode(M1_ENABLE, OUTPUT);
   pinMode(M1_A, OUTPUT);
   pinMode(M1_B, OUTPUT);
+  pinMode(M2_ENABLE, OUTPUT);
+  pinMode(M2_A, OUTPUT);
+  pinMode(M2_B, OUTPUT);
 
-  delay(50);
-  battery_voltage = return_voltage_measurement();
-  delay(50);
+  digitalWrite(M1_ENABLE, LOW);  // ensure the motors are turned off
+  digitalWrite(M2_ENABLE, LOW);  // ensure the motors are turned off
+
+  delay(5);
+  BATTERY_VOLTAGE = return_shunt_voltage_measurement();  //assumes
+  Serial.println("Battery Voltage: ~" + String(BATTERY_VOLTAGE) + "V");
+  delay(5000);
 }
 
 void loop() {
-  drive_motor_at_constant_rpm(25);
+  drive_motors_at_constant_RPM(100, 100);
 }
 
-float return_voltage_measurement() {
+float return_shunt_voltage_measurement() {
   int reading = analogRead(A0);
   float voltage = 0.00989736 * (reading);  //V
   return voltage;
 }
+void drive_motors_at_constant_RPM(float DESIRED_M1_RPM, float DESIRED_M2_RPM) {
+  uint8_t TIMEOUT_MS = 50;
+  uint8_t APPLY_FULL_PERIOD = 5;  //how many miliseconds the full on/off is applied;
+  int M1_approximated_rpm = 0;
+  int M2_approximated_rpm = 0;
 
-float determine_motor_speed() {
-  //turn-off motor
-  digitalWrite(M1_A, HIGH);
-  digitalWrite(M1_B, LOW);
-  digitalWrite(M1_ENABLE, LOW);
+  // Set the directions of the motors
+  if (DESIRED_M1_RPM > 0) {
+    digitalWrite(M1_A, HIGH);
+    digitalWrite(M1_B, LOW);
+  } else {
+    digitalWrite(M1_A, LOW);
+    digitalWrite(M1_B, HIGH);
+  }
+  if (DESIRED_M2_RPM > 0) {
+    digitalWrite(M2_A, LOW);
+    digitalWrite(M2_B, HIGH);
+  } else {
+    digitalWrite(M2_A, HIGH);
+    digitalWrite(M2_B, LOW);
+  }
 
-  //wait 1ms
-  delay(1);
-  float voltage_before_start = return_voltage_measurement();  //V
-  digitalWrite(M1_A, HIGH);
-  digitalWrite(M1_B, LOW);
-  digitalWrite(M1_ENABLE, HIGH);
-  delay(1);
+  DESIRED_M1_RPM = abs(DESIRED_M1_RPM);  //since direcion information is already utilized, only the magnitude is required.
+  DESIRED_M2_RPM = abs(DESIRED_M2_RPM);  //since direcion information is already utilized, only the magnitude is required.
 
-  float voltage_after_start = return_voltage_measurement();  //V
-
-  float voltage_difference = voltage_before_start - voltage_after_start;          //V
-  float motor_current = 2 * voltage_difference;                                   //A
-  float armature_resistance_voltage_drop = M1_R * motor_current;                  //V
-  float motor_back_emf = voltage_after_start - armature_resistance_voltage_drop;  //V
-  float motor_rpm = motor_back_emf / M1_kb;
-
-  return motor_rpm;
-}
-
-void drive_motor_at_constant_rpm(float RPM){
-  uint8_t TIMEOUT_MS = 25;
+  //try to converge to the desired RPMs
+  float M1_rpm = 0;            // in repeats  per minute
+  float M1_current_drawn = 0;  //in Amps
+  float M1_back_emf = 0;       // in Volts
+  float M2_rpm = 0;            // in repeats  per minute
+  float M2_current_drawn = 0;  //in Amp
+  float M2_back_emf = 0;       // in Volts
 
   unsigned long started_at = millis();
-  while(millis()-started_at<TIMEOUT_MS){
-    if (determine_motor_speed() < RPM){
-        digitalWrite(M1_A, HIGH);
-        digitalWrite(M1_B, LOW);
-        digitalWrite(M1_ENABLE, HIGH);
-      }else{
-        digitalWrite(M1_A, HIGH);
-        digitalWrite(M1_B, LOW);
-        digitalWrite(M1_ENABLE, LOW);
-      }   
-      delay(5);  
-  } 
+  while (millis() - started_at < TIMEOUT_MS) {
+    //turn off the motors
+    digitalWrite(M1_ENABLE, LOW);
+    digitalWrite(M2_ENABLE, LOW);
+    delayMicroseconds(500);                                                   //let the transient finish
+    float voltage_measurement_both_off = return_shunt_voltage_measurement();  //voltage when both motors are off
+    digitalWrite(M1_ENABLE, HIGH);
+    delayMicroseconds(500);                                             // Wait for M1 transients
+    float voltage_measurement_M1 = return_shunt_voltage_measurement();  //voltage when M1 is on, M2 is off
+    digitalWrite(M1_ENABLE, LOW);
+    digitalWrite(M2_ENABLE, HIGH);
+    delayMicroseconds(500);                                             // Wait for M2 transients
+    float voltage_measurement_M2 = return_shunt_voltage_measurement();  //voltage when M1 is off, M2 is on
+
+    M1_current_drawn = 2 * (voltage_measurement_both_off - voltage_measurement_M1);  //the voltage drop is over the 0.5Ohm resistor
+    M2_current_drawn = 2 * (voltage_measurement_both_off - voltage_measurement_M2);
+
+    M1_back_emf = voltage_measurement_both_off - (M1_R * M1_current_drawn);
+    M2_back_emf = voltage_measurement_both_off - (M2_R * M2_current_drawn);
+
+    M1_rpm = M1_back_emf / M1_kb;
+    M2_rpm = M2_back_emf / M2_kb;
+
+    //if RPM < DESIRED_RPM, set motor on, otherwise set it low.
+    if (M1_rpm < DESIRED_M1_RPM) {
+      digitalWrite(M1_ENABLE, HIGH);
+    } else {
+      digitalWrite(M1_ENABLE, LOW);
+    }
+    if (M2_rpm < DESIRED_M2_RPM) {
+      digitalWrite(M2_ENABLE, HIGH);
+    } else {
+      digitalWrite(M2_ENABLE, LOW);
+    }
+    delay(APPLY_FULL_PERIOD);  //keep motors full on/off this many miliseconds. Due to its inertia, the speed change will be differantial.
+  }
 
   //assume motor draws 0.6A when loaded. the steady state PWM is approximated as
-  float back_emf_at_desired_rpm = M1_kb*RPM;
-  float voltage_applied_when_on = 7.4-(0.5 + M1_R)*0.6;
-  float duty = back_emf_at_desired_rpm/voltage_applied_when_on;
-  uint16_t int_pwm = constrain(int(255*duty), 0, 255);
-  analogWrite(M1_ENABLE,int_pwm);
+  float M1_back_emf_at_desired_rpm = M1_kb * DESIRED_M1_RPM;
+  float M2_back_emf_at_desired_rpm = M2_kb * DESIRED_M2_RPM;
 
+  float M1_voltage_applied_when_on = BATTERY_VOLTAGE - (MOTOR_IN_SERIES_RESISTANCE + M1_R) * M1_current_drawn;  //note that M2 current also effect the voltage drop on series resistance, yet it is ignored for simplicity
+  float M2_voltage_applied_when_on = BATTERY_VOLTAGE - (MOTOR_IN_SERIES_RESISTANCE + M2_R) * M2_current_drawn;  //note that M2 current also effect the voltage drop on series resistance, yet it is ignored for simplicity
+
+  //If this state is steady-state, below pwm values will more-or-less keep the motors at this state.
+  int M1_PWM = constrain(int(255 * (M1_back_emf_at_desired_rpm / M1_voltage_applied_when_on)), 0, 255);
+  int M2_PWM = constrain(int(255 * (M2_back_emf_at_desired_rpm / M2_voltage_applied_when_on)), 0, 255);
+
+  analogWrite(M1_ENABLE, M1_PWM);
+  analogWrite(M2_ENABLE, M2_PWM);
+  delay(100);
 }
-
-
