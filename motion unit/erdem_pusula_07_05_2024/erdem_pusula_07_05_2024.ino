@@ -6,14 +6,14 @@
 #define rightMotor2 3
 #define right_pwm_normalizer 1
 #define rightMotorPWM 9
-#define M2_R 4.7    //armature resistance of the motor
-#define M2_kb 0.02  // motor back emf constant (V pser rpm), as increased, RPM is decreased
+#define right_R 4.65   //armature resistance of the motor
+#define right_kb 0.02  // motor back emf constant (V pser rpm), as increased, RPM is decreased
 
 #define leftMotor1 4  //right motor 320RPM
 #define leftMotor2 5
 #define leftMotorPWM 10
-#define M1_R 5.7    //armature resistance of the motor
-#define M1_kb 0.02  // motor back emf constant (V per rpm), as increased, RPM is decreased
+#define left_R 4.65   //armature resistance of the motor
+#define left_kb 0.02  // motor back emf constant (V per rpm), as increased, RPM is decreased
 
 #define MOTOR_IN_SERIES_RESISTANCE 0.5  // The resitance in series with the H bridge. (i.e. ~shunt resistor)
 
@@ -30,7 +30,7 @@ void rotate_cw();
 float BATTERY_VOLTAGE = 0;  //measured only once at the start-up
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(9600);
+  Serial.begin(115200);
   compass.init();
   pinMode(SHUNT_FEEDBACK_PIN, INPUT);
 
@@ -44,12 +44,42 @@ void setup() {
   reference = return_angle();
 
   delay(5);
+  delay(4000);
   BATTERY_VOLTAGE = return_shunt_voltage_measurement();  //assumes
   Serial.println("Battery Voltage: ~" + String(BATTERY_VOLTAGE) + "V");
-  delay(5000);
+  delay(1000);
 }
 
+float desired_rpm = 150;
+int left_pwm = 0;
+int right_pwm = 0;
+int pwm_increment = 5;
+int pwm_decrement = 5;
+
 void loop() {
+  float *motor_speeds = return_motor_speeds(left_pwm, right_pwm);
+  Serial.println("Left: " + String(motor_speeds[0]) + " RPM, Right: " + String(motor_speeds[1]) + " RPM"+ " Left PWM: " + String(left_pwm) + " Right PWM: " + String(right_pwm));
+
+  if (motor_speeds[0] < desired_rpm) {
+    left_pwm = left_pwm + pwm_increment;
+    if(left_pwm > 255)left_pwm=255;
+  } else {
+    left_pwm = left_pwm - pwm_decrement;
+    if(left_pwm <0)left_pwm = 0;
+  }
+  constrain(left_pwm, 0, 255);
+  
+  if (motor_speeds[1] < desired_rpm) {
+    right_pwm = right_pwm + pwm_increment;
+    if(right_pwm >255) right_pwm = 255;
+  } else {
+    right_pwm = right_pwm - pwm_decrement;
+    if(right_pwm <0) right_pwm = 0;
+  }
+
+  free(motor_speeds);  //free the allocated memory;
+  delay(10);
+
   // put your main code here, to run repeatedly:
 
   //float angle = return_angle();
@@ -60,15 +90,7 @@ void loop() {
   //move(reference);
   //rotate_ccw();
 
-  align_with(reference, 4);
-  unsigned long start_time = millis();
-  while (millis() - start_time < 1000) {
-    move(reference, 20, 4);
-  }
-  stopmotor();
-  delay(2000);
-
-  reference = int(reference+90)%360;
+  //align_with(0, 4);
 
 
   //drive_motors_at_constant_RPM(100,100);
@@ -122,11 +144,25 @@ float return_angle() {
   return bearing;
 }
 
+float return_angle_deviation(float desired_angle) {
+  float angle_now = return_angle();
+  // Calculate the deviation
+  float angle_deviation = desired_angle - angle_now;
+
+  // Normalize the deviation to be within the range [-180, 180)
+  if (angle_deviation >= 180) {
+    angle_deviation = 360 - angle_deviation;
+  } else if (angle_deviation < -180) {
+    angle_deviation += 360;
+  }
+  return angle_deviation;
+}
+
 void drive_motors_at_constant_RPM(float DESIRED_LEFT_RPM, float DESIRED_RIGHT_RPM) {
   uint8_t TIMEOUT_MS = 20;
   uint8_t APPLY_FULL_PERIOD = 5;  //how many miliseconds the full on/off is applied;
-  int M1_approximated_rpm = 0;
-  int M2_approximated_rpm = 0;
+  int left_approximated_rpm = 0;
+  int right_approximated_rpm = 0;
 
   // Set the directions of the motors
   if (DESIRED_LEFT_RPM < 0) {
@@ -148,12 +184,12 @@ void drive_motors_at_constant_RPM(float DESIRED_LEFT_RPM, float DESIRED_RIGHT_RP
   DESIRED_RIGHT_RPM = abs(DESIRED_RIGHT_RPM);  //since direcion information is already utilized, only the magnitude is required.
 
   //try to converge to the desired RPMs
-  float M1_rpm = 0;            // in repeats  per minute
-  float M1_current_drawn = 0;  //in Amps
-  float M1_back_emf = 0;       // in Volts
-  float M2_rpm = 0;            // in repeats  per minute
-  float M2_current_drawn = 0;  //in Amp
-  float M2_back_emf = 0;       // in Volts
+  float left_rpm = 0;             // in repeats  per minute
+  float left_current_drawn = 0;   //in Amps
+  float left_back_emf = 0;        // in Volts
+  float right_rpm = 0;            // in repeats  per minute
+  float right_current_drawn = 0;  //in Amp
+  float right_back_emf = 0;       // in Volts
 
   unsigned long started_at = millis();
   while (millis() - started_at < TIMEOUT_MS) {
@@ -163,29 +199,29 @@ void drive_motors_at_constant_RPM(float DESIRED_LEFT_RPM, float DESIRED_RIGHT_RP
     delayMicroseconds(500);                                                   //let the transient finish
     float voltage_measurement_both_off = return_shunt_voltage_measurement();  //voltage when both motors are off
     digitalWrite(leftMotorPWM, HIGH);
-    delayMicroseconds(500);                                             // Wait for M1 transients
-    float voltage_measurement_M1 = return_shunt_voltage_measurement();  //voltage when M1 is on, M2 is off
+    delayMicroseconds(500);                                               // Wait for left transients
+    float voltage_measurement_left = return_shunt_voltage_measurement();  //voltage when left is on, right is off
     digitalWrite(leftMotorPWM, LOW);
     digitalWrite(rightMotorPWM, HIGH);
-    delayMicroseconds(500);                                             // Wait for M2 transients
-    float voltage_measurement_M2 = return_shunt_voltage_measurement();  //voltage when M1 is off, M2 is on
+    delayMicroseconds(500);                                                // Wait for right transients
+    float voltage_measurement_right = return_shunt_voltage_measurement();  //voltage when left is off, right is on
 
-    M1_current_drawn = 2 * (voltage_measurement_both_off - voltage_measurement_M1);  //the voltage drop is over the 0.5Ohm resistor
-    M2_current_drawn = 2 * (voltage_measurement_both_off - voltage_measurement_M2);
+    left_current_drawn = 2 * (voltage_measurement_both_off - voltage_measurement_left);  //the voltage drop is over the 0.5Ohm resistor
+    right_current_drawn = 2 * (voltage_measurement_both_off - voltage_measurement_right);
 
-    M1_back_emf = voltage_measurement_both_off - (M1_R * M1_current_drawn);
-    M2_back_emf = voltage_measurement_both_off - (M2_R * M2_current_drawn);
+    left_back_emf = voltage_measurement_both_off - (left_R * left_current_drawn);
+    right_back_emf = voltage_measurement_both_off - (right_R * right_current_drawn);
 
-    M1_rpm = M1_back_emf / M1_kb;
-    M2_rpm = M2_back_emf / M2_kb;
+    left_rpm = left_back_emf / left_kb;
+    right_rpm = right_back_emf / right_kb;
 
     //if RPM < DESIRED_RPM, set motor on, otherwise set it low.
-    if (M1_rpm < DESIRED_LEFT_RPM) {
+    if (left_rpm < DESIRED_LEFT_RPM) {
       digitalWrite(leftMotorPWM, HIGH);
     } else {
       digitalWrite(leftMotorPWM, LOW);
     }
-    if (M2_rpm < DESIRED_RIGHT_RPM) {
+    if (right_rpm < DESIRED_RIGHT_RPM) {
       digitalWrite(rightMotorPWM, HIGH);
     } else {
       digitalWrite(rightMotorPWM, LOW);
@@ -194,41 +230,27 @@ void drive_motors_at_constant_RPM(float DESIRED_LEFT_RPM, float DESIRED_RIGHT_RP
   }
 
   //assume motor draws 0.6A when loaded. the steady state PWM is approximated as
-  float M1_back_emf_at_desired_rpm = M1_kb * DESIRED_LEFT_RPM;
-  float M2_back_emf_at_desired_rpm = M2_kb * DESIRED_RIGHT_RPM;
+  float left_back_emf_at_desired_rpm = left_kb * DESIRED_LEFT_RPM;
+  float right_back_emf_at_desired_rpm = right_kb * DESIRED_RIGHT_RPM;
 
-  float M1_voltage_applied_when_on = BATTERY_VOLTAGE - (MOTOR_IN_SERIES_RESISTANCE + M1_R) * M1_current_drawn;  //note that M2 current also effect the voltage drop on series resistance, yet it is ignored for simplicity
-  float M2_voltage_applied_when_on = BATTERY_VOLTAGE - (MOTOR_IN_SERIES_RESISTANCE + M2_R) * M2_current_drawn;  //note that M2 current also effect the voltage drop on series resistance, yet it is ignored for simplicity
+  float left_voltage_applied_when_on = BATTERY_VOLTAGE - (MOTOR_IN_SERIES_RESISTANCE + left_R) * left_current_drawn;     //note that right current also effect the voltage drop on series resistance, yet it is ignored for simplicity
+  float right_voltage_applied_when_on = BATTERY_VOLTAGE - (MOTOR_IN_SERIES_RESISTANCE + right_R) * right_current_drawn;  //note that right current also effect the voltage drop on series resistance, yet it is ignored for simplicity
 
   //If this state is steady-state, below pwm values will more-or-less keep the motors at this state.
-  int M1_PWM = constrain(int(255 * (M1_back_emf_at_desired_rpm / M1_voltage_applied_when_on)), 0, 255);
-  int M2_PWM = constrain(int(255 * (M2_back_emf_at_desired_rpm / M2_voltage_applied_when_on)), 0, 255);
+  int left_PWM = constrain(int(255 * (left_back_emf_at_desired_rpm / left_voltage_applied_when_on)), 0, 255);
+  int right_PWM = constrain(int(255 * (right_back_emf_at_desired_rpm / right_voltage_applied_when_on)), 0, 255);
 
-  analogWrite(leftMotorPWM, M1_PWM);
-  analogWrite(rightMotorPWM, M2_PWM);
+  analogWrite(leftMotorPWM, left_PWM);
+  analogWrite(rightMotorPWM, right_PWM);
   delay(25);
-}
-
-float return_angle_deviation(float desired_angle) {
-  float angle_now = return_angle();
-  // Calculate the deviation
-  float angle_deviation = desired_angle - angle_now;
-
-  // Normalize the deviation to be within the range [-180, 180)
-  if (angle_deviation >= 180) {
-    angle_deviation = 360 - angle_deviation;
-  } else if (angle_deviation < -180) {
-    angle_deviation += 360;
-  }
-  return angle_deviation;
 }
 
 void align_with(float desired_angle, int angle_margin) {
   float angle_error = return_angle_deviation(desired_angle);
+
   if (angle_error <= -angle_margin) {
     while (true) {
       float zaa2 = return_angle_deviation(desired_angle);
-      Serial.println("yiğit" + String(zaa2));
       if (zaa2 > 0) {
         break;
       }
@@ -244,7 +266,6 @@ void align_with(float desired_angle, int angle_margin) {
       if (zaa < 0) {
         break;
       }
-      Serial.println("erdem " + String(zaa));
       stopmotor();
       delay(25);
       rotate_ccw();
@@ -253,6 +274,7 @@ void align_with(float desired_angle, int angle_margin) {
     }
   }
 }
+
 void move(float desired_angle, int angle_margin, float kp) {
 
   float angle_error = return_angle_deviation(desired_angle);
@@ -295,6 +317,59 @@ void move(float desired_angle, int angle_margin, float kp) {
     }
   }
 }
+
+float *return_motor_speeds(uint8_t left_motor_exit_PWM, uint8_t right_motor_exit_PWM) {
+  //turn off the motors
+  digitalWrite(leftMotorPWM, LOW);
+  digitalWrite(rightMotorPWM, LOW);
+  delayMicroseconds(750);                                                   //let the transient finish
+  float voltage_measurement_both_off = return_shunt_voltage_measurement();  //voltage when both motors are off
+  digitalWrite(leftMotorPWM, HIGH);
+  delayMicroseconds(1000);                                              // Wait for left transients
+  float voltage_measurement_left = return_shunt_voltage_measurement();  //voltage when left is on, right is off
+  digitalWrite(leftMotorPWM, LOW);
+  digitalWrite(rightMotorPWM, HIGH);
+  delayMicroseconds(1000);                                               // Wait for right transients
+  float voltage_measurement_right = return_shunt_voltage_measurement();  //voltage when left is off, right is on
+
+  // Set the directions of the motors and the default speeds
+  if (leftMotorPWM < 0) {
+    digitalWrite(leftMotor1, LOW);
+    digitalWrite(leftMotor2, HIGH);
+  } else {
+    digitalWrite(leftMotor1, HIGH);
+    digitalWrite(leftMotor2, LOW);
+  }
+  if (rightMotorPWM < 0) {
+    digitalWrite(rightMotor1, HIGH);
+    digitalWrite(rightMotor2, LOW);
+  } else {
+    digitalWrite(rightMotor1, LOW);
+    digitalWrite(rightMotor2, HIGH);
+  }
+  analogWrite(leftMotorPWM, left_motor_exit_PWM);
+  analogWrite(rightMotorPWM, right_motor_exit_PWM);
+
+  float left_current_drawn = 2 * (voltage_measurement_both_off - voltage_measurement_left);  //the voltage drop is over the 0.5Ohm resistor
+  float right_current_drawn = 2 * (voltage_measurement_both_off - voltage_measurement_right);
+
+  float left_back_emf = voltage_measurement_both_off - (left_R * left_current_drawn);
+  float right_back_emf = voltage_measurement_both_off - (right_R * right_current_drawn);
+
+  float left_rpm = left_back_emf / left_kb;
+  float right_rpm = right_back_emf / right_kb;
+
+  float *rpm_vals = malloc(2 * sizeof(float));
+  if (rpm_vals == NULL) {
+    // Handle memory allocation failure
+    return NULL;
+  }
+  rpm_vals[0] = left_rpm;
+  rpm_vals[1] = right_rpm;
+
+  return rpm_vals;
+}
+
 
 void drive_right_motor_at(int pwm_val, int update_period_ms, uint8_t delta_pwm_per_period) {
   static unsigned long last_time_update = 0;
