@@ -91,30 +91,49 @@ void setup() {
 }
 
 float desired_rpm = 150;
+uint8_t min_pwm = 70;
+uint8_t max_pwm = 170;
+
 float del_rpm_bound = 0.25 * desired_rpm;
 float final_x_pos = 0;
 float final_y_pos = 0;
 float percentage_kp = 0.025 * desired_rpm;
 int left_pwm = 0;
 int right_pwm = 0;
-int pwm_increment = 10;
-int pwm_decrement = 10;
+int pwm_increment = 3;
+int pwm_decrement = 3;
 
+float M_PER_SEC_RPM = (0.2198) / 60.0;
+uint16_t iteration_duration_ms = 15;
+float iteration_duration = iteration_duration_ms / 1000.0;
 
 void loop() {
   //align with 0 angle
-  align_with(reference, 4);
-  delay(1000);
+  delay(1500);
+  align_with(0, 1);
+  delay(1500);
 
-  left_pwm = 30;
-  right_pwm = 30;
+  left_pwm = 80;
+  right_pwm = 80;
 
+  float distance_mag = 0;
+  float distance_x = 0;
+  float distance_y = 0;
   unsigned long start_time = millis();
-  while (millis() - start_time < 5000) {
+  while (millis() - start_time < 7500) {
+    // if deviation is positive slow down left motor.
     float *motor_speeds = return_motor_speeds(left_pwm, right_pwm);
     Serial.println("Left: " + String(motor_speeds[0]) + " RPM, Right: " + String(motor_speeds[1]) + " RPM" + " Left PWM: " + String(left_pwm) + " Right PWM: " + String(right_pwm));
 
     float angle_deviation = return_angle_deviation(reference);
+    float radian_deviation = angle_deviation * (0.017453);
+    float common_speed = (motor_speeds[0] + motor_speeds[1]) / 2;
+    distance_mag = distance_mag + common_speed * M_PER_SEC_RPM * iteration_duration;
+    distance_x = distance_mag * sin(radian_deviation);  //term with sine
+    distance_y = distance_mag * cos(radian_deviation);  //term with cosine
+    Serial.println("Distance: " + String(distance_mag) + ", Distance X: " + String(distance_x) + ", Distance Y: " + String(distance_y));
+    if (distance_y > 0.60) break;
+
     float del_rpm = percentage_kp * angle_deviation;
     if (del_rpm < -del_rpm_bound) {
       del_rpm = -del_rpm_bound;
@@ -126,22 +145,22 @@ void loop() {
 
     if (motor_speeds[0] < left_desired_speed) {
       left_pwm = left_pwm + pwm_increment;
-      if (left_pwm > 255) left_pwm = 255;
+      if (left_pwm > max_pwm) left_pwm = max_pwm;
     } else {
       left_pwm = left_pwm - pwm_decrement;
-      if (left_pwm < 0) left_pwm = 0;
+      if (left_pwm < min_pwm) left_pwm = min_pwm;
     }
     if (motor_speeds[1] < right_desired_speed) {
       right_pwm = right_pwm + pwm_increment;
-      if (right_pwm > 255) right_pwm = 255;
+      if (right_pwm > max_pwm) right_pwm = max_pwm;
     } else {
       right_pwm = right_pwm - pwm_decrement;
-      if (right_pwm < 0) right_pwm = 0;
+      if (right_pwm < min_pwm) right_pwm = min_pwm;
     }
 
 
     free(motor_speeds);  //free the allocated memory;
-    delay(30);
+    delay(iteration_duration_ms);
   }
 
   //slow down the motors
@@ -153,20 +172,20 @@ void loop() {
 
 
 
-// put your main code here, to run repeatedly:
+  // put your main code here, to run repeatedly:
 
-//float angle = return_angle();
-//Serial.println(angle);
+  //float angle = return_angle();
+  //Serial.println(angle);
 
-// float  desired_angle=(angle+90)%360;
-//Serial.println(deviation);
-//move(reference);
-//rotate_ccw();
+  // float  desired_angle=(angle+90)%360;
+  //Serial.println(deviation);
+  //move(reference);
+  //rotate_ccw();
 
-//align_with(0, 4);
+  //align_with(0, 4);
 
 
-//drive_motors_at_constant_RPM(100,100);
+  //drive_motors_at_constant_RPM(100,100);
 }
 
 float return_shunt_voltage_measurement() {
@@ -177,7 +196,7 @@ float return_shunt_voltage_measurement() {
 
 float return_angle() {
   //https://stackoverflow.com/questions/57120466/how-to-calculate-azimuth-from-x-y-z-values-from-magnetometer
-  int MEAN_COUNT = 5;
+  int MEAN_COUNT = 10;
 
   int x = 0;
   int y = 0;
@@ -330,7 +349,7 @@ void align_with(float desired_angle, int angle_margin) {
       stopmotor();
       delay(25);
       rotate_cw();
-      delay(30);
+      delay(25);
       stopmotor();
     }
   } else if (angle_error >= angle_margin) {
@@ -342,7 +361,7 @@ void align_with(float desired_angle, int angle_margin) {
       stopmotor();
       delay(25);
       rotate_ccw();
-      delay(30);
+      delay(25);
       stopmotor();
     }
   }
