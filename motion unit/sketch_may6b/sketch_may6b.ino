@@ -6,19 +6,20 @@
 #define rightMotor2 3
 #define right_pwm_normalizer 1
 #define rightMotorPWM 9
-#define M1_R 5.7    //armature resistance of the motor
-#define M1_kb 0.02  // motor back emf constant (V per rpm), as increased, RPM is decreased
+#define M2_R 4.7    //armature resistance of the motor
+#define M2_kb 0.02  // motor back emf constant (V per rpm), as increased, RPM is decreased
 
 #define leftMotor1 4  //right motor 320RPM
 #define leftMotor2 5
 #define leftMotorPWM 10
-#define M2_R 5.7    //armature resistance of the motor
-#define M2_kb 0.02                      // motor back emf constant (V per rpm), as increased, RPM is decreased
+#define M1_R 5.7    //armature resistance of the motor
+#define M1_kb 0.02  // motor back emf constant (V per rpm), as increased, RPM is decreased
+
 #define MOTOR_IN_SERIES_RESISTANCE 0.5  // The resitance in series with the H bridge. (i.e. ~shunt resistor)
 
 #define left_pwm_normalizer 1
 #define threshold = 3;
-uint8_t base_pwm = 90;
+uint8_t base_pwm = 100;
 QMC5883LCompass compass;
 float reference;
 float return_angle();
@@ -58,10 +59,19 @@ void loop() {
   //Serial.println(deviation);
   //move(reference);
   //rotate_ccw();
-  
-  move(reference, 10);
 
-  //drive_motors_at_constant_RPM(100,-100);
+  align_with(reference, 4);
+  unsigned long start_time = millis();
+  while (millis() - start_time < 1000) {
+    move(reference, 20, 4);
+  }
+  stopmotor();
+  delay(2000);
+
+  reference = int(reference+90)%360;
+
+
+  //drive_motors_at_constant_RPM(100,100);
 }
 
 float return_shunt_voltage_measurement() {
@@ -134,7 +144,7 @@ void drive_motors_at_constant_RPM(float DESIRED_LEFT_RPM, float DESIRED_RIGHT_RP
     digitalWrite(rightMotor2, HIGH);
   }
 
-  DESIRED_LEFT_RPM = abs(DESIRED_LEFT_RPM);  //since direcion information is already utilized, only the magnitude is required.
+  DESIRED_LEFT_RPM = abs(DESIRED_LEFT_RPM);    //since direcion information is already utilized, only the magnitude is required.
   DESIRED_RIGHT_RPM = abs(DESIRED_RIGHT_RPM);  //since direcion information is already utilized, only the magnitude is required.
 
   //try to converge to the desired RPMs
@@ -150,14 +160,14 @@ void drive_motors_at_constant_RPM(float DESIRED_LEFT_RPM, float DESIRED_RIGHT_RP
     //turn off the motors
     digitalWrite(leftMotorPWM, LOW);
     digitalWrite(rightMotorPWM, LOW);
-    delayMicroseconds(350);                                                   //let the transient finish
+    delayMicroseconds(500);                                                   //let the transient finish
     float voltage_measurement_both_off = return_shunt_voltage_measurement();  //voltage when both motors are off
     digitalWrite(leftMotorPWM, HIGH);
-    delayMicroseconds(350);                                             // Wait for M1 transients
+    delayMicroseconds(500);                                             // Wait for M1 transients
     float voltage_measurement_M1 = return_shunt_voltage_measurement();  //voltage when M1 is on, M2 is off
     digitalWrite(leftMotorPWM, LOW);
     digitalWrite(rightMotorPWM, HIGH);
-    delayMicroseconds(350);                                             // Wait for M2 transients
+    delayMicroseconds(500);                                             // Wait for M2 transients
     float voltage_measurement_M2 = return_shunt_voltage_measurement();  //voltage when M1 is off, M2 is on
 
     M1_current_drawn = 2 * (voltage_measurement_both_off - voltage_measurement_M1);  //the voltage drop is over the 0.5Ohm resistor
@@ -199,7 +209,6 @@ void drive_motors_at_constant_RPM(float DESIRED_LEFT_RPM, float DESIRED_RIGHT_RP
   delay(25);
 }
 
-
 float return_angle_deviation(float desired_angle) {
   float angle_now = return_angle();
   // Calculate the deviation
@@ -214,7 +223,37 @@ float return_angle_deviation(float desired_angle) {
   return angle_deviation;
 }
 
-void move(float desired_angle, int angle_margin) {
+void align_with(float desired_angle, int angle_margin) {
+  float angle_error = return_angle_deviation(desired_angle);
+  if (angle_error <= -angle_margin) {
+    while (true) {
+      float zaa2 = return_angle_deviation(desired_angle);
+      Serial.println("yiğit" + String(zaa2));
+      if (zaa2 > 0) {
+        break;
+      }
+      stopmotor();
+      delay(25);
+      rotate_cw();
+      delay(30);
+      stopmotor();
+    }
+  } else if (angle_error >= angle_margin) {
+    while (true) {
+      float zaa = return_angle_deviation(desired_angle);
+      if (zaa < 0) {
+        break;
+      }
+      Serial.println("erdem " + String(zaa));
+      stopmotor();
+      delay(25);
+      rotate_ccw();
+      delay(30);
+      stopmotor();
+    }
+  }
+}
+void move(float desired_angle, int angle_margin, float kp) {
 
   float angle_error = return_angle_deviation(desired_angle);
 
@@ -227,20 +266,19 @@ void move(float desired_angle, int angle_margin) {
         break;
       }
       stopmotor();
-      delay(50);
+      delay(25);
       rotate_cw();
-      delay(50);
+      delay(40);
       stopmotor();
-      delay(50);
     }
 
   } else if (-angle_margin < angle_error && angle_error < angle_margin) {
 
     angle_error = -angle_error;
-    int right_pwm = int((base_pwm + 4 * angle_error) * right_pwm_normalizer);
-    int left_pwm = int((base_pwm + 4 * angle_error) * left_pwm_normalizer);
-    drive_left_motor_at(left_pwm, 25, 3);
-    drive_right_motor_at(right_pwm, 25, 3);
+    int right_pwm = int((base_pwm + kp * angle_error));
+    int left_pwm = int((base_pwm + kp * angle_error));
+    drive_motors_at_constant_RPM(left_pwm, right_pwm);
+
     Serial.println("berfin" + String(angle_error));
   } else if (angle_error >= angle_margin) {
     while (true) {
@@ -250,11 +288,10 @@ void move(float desired_angle, int angle_margin) {
       }
       Serial.println("erdem " + String(zaa));
       stopmotor();
-      delay(50);
+      delay(25);
       rotate_ccw();
-      delay(50);
+      delay(40);
       stopmotor();
-      delay(50);
     }
   }
 }
