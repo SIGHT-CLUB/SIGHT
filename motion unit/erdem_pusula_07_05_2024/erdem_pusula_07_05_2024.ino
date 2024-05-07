@@ -81,7 +81,7 @@ void setup() {
   pinMode(leftMotor2, OUTPUT);
   pinMode(leftMotorPWM, OUTPUT);
 
-  //calibrate_right_angles();
+  calibrate_right_angles();
 
   BATTERY_VOLTAGE = return_shunt_voltage_measurement();  //assumes
   delay(3000);
@@ -107,10 +107,16 @@ float M_PER_SEC_RPM = (0.2198) / 60.0;
 uint16_t iteration_duration_ms = 15;
 float iteration_duration = iteration_duration_ms / 1000.0;
 
+uint8_t counter = 0;
 void loop() {
   //align with 0 angle
+  reference = right_angles[counter];
+  counter= counter + 1;
+  if(counter >3){
+    counter =0;
+  }
   delay(1500);
-  align_with(0, 1);
+  align_with(reference, 1);
   delay(1500);
 
   left_pwm = 80;
@@ -132,7 +138,7 @@ void loop() {
     distance_x = distance_mag * sin(radian_deviation);  //term with sine
     distance_y = distance_mag * cos(radian_deviation);  //term with cosine
     Serial.println("Distance: " + String(distance_mag) + ", Distance X: " + String(distance_x) + ", Distance Y: " + String(distance_y));
-    if (distance_y > 0.60) break;
+    if (distance_y > 0.225) break;
 
     float del_rpm = percentage_kp * angle_deviation;
     if (del_rpm < -del_rpm_bound) {
@@ -339,7 +345,8 @@ void drive_motors_at_constant_RPM(float DESIRED_LEFT_RPM, float DESIRED_RIGHT_RP
 
 void align_with(float desired_angle, int angle_margin) {
   float angle_error = return_angle_deviation(desired_angle);
-
+  float pulse_duration = 20+abs(angle_error)*3;
+  if (pulse_duration>75)pulse_duration = 75;
   if (angle_error <= -angle_margin) {
     while (true) {
       float zaa2 = return_angle_deviation(desired_angle);
@@ -349,8 +356,9 @@ void align_with(float desired_angle, int angle_margin) {
       stopmotor();
       delay(25);
       rotate_cw();
-      delay(25);
+      delay(pulse_duration);
       stopmotor();
+      delay(50);
     }
   } else if (angle_error >= angle_margin) {
     while (true) {
@@ -361,8 +369,9 @@ void align_with(float desired_angle, int angle_margin) {
       stopmotor();
       delay(25);
       rotate_ccw();
-      delay(25);
+      delay(pulse_duration);
       stopmotor();
+      delay(50);
     }
   }
 }
@@ -517,7 +526,6 @@ void drive_left_motor_at(int pwm_val, int update_period_ms, uint8_t delta_pwm_pe
     analogWrite(leftMotorPWM, actual_pwm);
   }
 }
-
 
 void rotate_ccw() {
   digitalWrite(leftMotor1, LOW);
