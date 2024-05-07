@@ -28,6 +28,46 @@ void rotate_cw();
 
 
 float BATTERY_VOLTAGE = 0;  //measured only once at the start-up
+
+float right_angles[4] = { 0, 90, 180, 270 };
+void calibrate_right_angles() {
+  //vibrate
+  rotate_ccw();
+  delay(50);
+  rotate_cw();
+  delay(50);
+  stopmotor();
+  delay(3500);
+  right_angles[0] = return_angle();
+
+  //vibrate
+  rotate_ccw();
+  delay(50);
+  rotate_cw();
+  delay(50);
+  stopmotor();
+  delay(3500);
+  right_angles[1] = return_angle();
+
+  //vibrate
+  rotate_ccw();
+  delay(50);
+  rotate_cw();
+  delay(50);
+  stopmotor();
+  delay(3500);
+  right_angles[2] = return_angle();
+
+  //vibrate
+  rotate_ccw();
+  delay(50);
+  rotate_cw();
+  delay(50);
+  stopmotor();
+  delay(3500);
+  right_angles[3] = return_angle();
+}
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
@@ -40,60 +80,93 @@ void setup() {
   pinMode(leftMotor1, OUTPUT);
   pinMode(leftMotor2, OUTPUT);
   pinMode(leftMotorPWM, OUTPUT);
-  delay(50);
+
+  //calibrate_right_angles();
+
+  BATTERY_VOLTAGE = return_shunt_voltage_measurement();  //assumes
+  delay(3000);
   reference = return_angle();
 
-  delay(5);
-  delay(4000);
-  BATTERY_VOLTAGE = return_shunt_voltage_measurement();  //assumes
   Serial.println("Battery Voltage: ~" + String(BATTERY_VOLTAGE) + "V");
-  delay(1000);
 }
 
 float desired_rpm = 150;
+float del_rpm_bound = 0.25 * desired_rpm;
+float final_x_pos = 0;
+float final_y_pos = 0;
+float percentage_kp = 0.025 * desired_rpm;
 int left_pwm = 0;
 int right_pwm = 0;
-int pwm_increment = 5;
-int pwm_decrement = 5;
+int pwm_increment = 10;
+int pwm_decrement = 10;
+
 
 void loop() {
-  float *motor_speeds = return_motor_speeds(left_pwm, right_pwm);
-  Serial.println("Left: " + String(motor_speeds[0]) + " RPM, Right: " + String(motor_speeds[1]) + " RPM"+ " Left PWM: " + String(left_pwm) + " Right PWM: " + String(right_pwm));
+  //align with 0 angle
+  align_with(reference, 4);
+  delay(1000);
 
-  if (motor_speeds[0] < desired_rpm) {
-    left_pwm = left_pwm + pwm_increment;
-    if(left_pwm > 255)left_pwm=255;
-  } else {
-    left_pwm = left_pwm - pwm_decrement;
-    if(left_pwm <0)left_pwm = 0;
+  left_pwm = 30;
+  right_pwm = 30;
+
+  unsigned long start_time = millis();
+  while (millis() - start_time < 5000) {
+    float *motor_speeds = return_motor_speeds(left_pwm, right_pwm);
+    Serial.println("Left: " + String(motor_speeds[0]) + " RPM, Right: " + String(motor_speeds[1]) + " RPM" + " Left PWM: " + String(left_pwm) + " Right PWM: " + String(right_pwm));
+
+    float angle_deviation = return_angle_deviation(reference);
+    float del_rpm = percentage_kp * angle_deviation;
+    if (del_rpm < -del_rpm_bound) {
+      del_rpm = -del_rpm_bound;
+    } else if (del_rpm > del_rpm_bound) {
+      del_rpm = del_rpm_bound;
+    }
+    float left_desired_speed = desired_rpm - del_rpm;
+    float right_desired_speed = desired_rpm + del_rpm;
+
+    if (motor_speeds[0] < left_desired_speed) {
+      left_pwm = left_pwm + pwm_increment;
+      if (left_pwm > 255) left_pwm = 255;
+    } else {
+      left_pwm = left_pwm - pwm_decrement;
+      if (left_pwm < 0) left_pwm = 0;
+    }
+    if (motor_speeds[1] < right_desired_speed) {
+      right_pwm = right_pwm + pwm_increment;
+      if (right_pwm > 255) right_pwm = 255;
+    } else {
+      right_pwm = right_pwm - pwm_decrement;
+      if (right_pwm < 0) right_pwm = 0;
+    }
+
+
+    free(motor_speeds);  //free the allocated memory;
+    delay(30);
   }
-  constrain(left_pwm, 0, 255);
-  
-  if (motor_speeds[1] < desired_rpm) {
-    right_pwm = right_pwm + pwm_increment;
-    if(right_pwm >255) right_pwm = 255;
-  } else {
-    right_pwm = right_pwm - pwm_decrement;
-    if(right_pwm <0) right_pwm = 0;
-  }
 
-  free(motor_speeds);  //free the allocated memory;
-  delay(10);
-
-  // put your main code here, to run repeatedly:
-
-  //float angle = return_angle();
-  //Serial.println(angle);
-
-  // float  desired_angle=(angle+90)%360;
-  //Serial.println(deviation);
-  //move(reference);
-  //rotate_ccw();
-
-  //align_with(0, 4);
+  //slow down the motors
+  stopmotor();
+  delay(1000);
 
 
-  //drive_motors_at_constant_RPM(100,100);
+
+
+
+
+// put your main code here, to run repeatedly:
+
+//float angle = return_angle();
+//Serial.println(angle);
+
+// float  desired_angle=(angle+90)%360;
+//Serial.println(deviation);
+//move(reference);
+//rotate_ccw();
+
+//align_with(0, 4);
+
+
+//drive_motors_at_constant_RPM(100,100);
 }
 
 float return_shunt_voltage_measurement() {
@@ -322,7 +395,7 @@ float *return_motor_speeds(uint8_t left_motor_exit_PWM, uint8_t right_motor_exit
   //turn off the motors
   digitalWrite(leftMotorPWM, LOW);
   digitalWrite(rightMotorPWM, LOW);
-  delayMicroseconds(750);                                                   //let the transient finish
+  delayMicroseconds(1000);                                                  //let the transient finish
   float voltage_measurement_both_off = return_shunt_voltage_measurement();  //voltage when both motors are off
   digitalWrite(leftMotorPWM, HIGH);
   delayMicroseconds(1000);                                              // Wait for left transients
