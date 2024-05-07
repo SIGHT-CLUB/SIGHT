@@ -66,6 +66,14 @@ void calibrate_right_angles() {
   stopmotor();
   delay(3500);
   right_angles[3] = return_angle();
+
+  //vibrate
+  rotate_ccw();
+  delay(50);
+  rotate_cw();
+  delay(50);
+  stopmotor();
+  delay(3500);
 }
 
 void setup() {
@@ -90,9 +98,9 @@ void setup() {
   Serial.println("Battery Voltage: ~" + String(BATTERY_VOLTAGE) + "V");
 }
 
-float desired_rpm = 150;
+float desired_rpm = 75;
 uint8_t min_pwm = 70;
-uint8_t max_pwm = 170;
+uint8_t max_pwm = 150;
 
 float del_rpm_bound = 0.25 * desired_rpm;
 float final_x_pos = 0;
@@ -111,16 +119,16 @@ uint8_t counter = 0;
 void loop() {
   //align with 0 angle
   reference = right_angles[counter];
-  counter= counter + 1;
-  if(counter >3){
-    counter =0;
+  counter = counter + 1;
+  if (counter > 3) {
+    counter = 0;
   }
   delay(1500);
   align_with(reference, 1);
   delay(1500);
 
-  left_pwm = 80;
-  right_pwm = 80;
+  left_pwm = min_pwm;
+  right_pwm = min_pwm;
 
   float distance_mag = 0;
   float distance_x = 0;
@@ -345,8 +353,8 @@ void drive_motors_at_constant_RPM(float DESIRED_LEFT_RPM, float DESIRED_RIGHT_RP
 
 void align_with(float desired_angle, int angle_margin) {
   float angle_error = return_angle_deviation(desired_angle);
-  float pulse_duration = 20+abs(angle_error)*3;
-  if (pulse_duration>75)pulse_duration = 75;
+  float pulse_duration = 20 + abs(angle_error) * 2;
+  if (pulse_duration > 75) pulse_duration = 75;
   if (angle_error <= -angle_margin) {
     while (true) {
       float zaa2 = return_angle_deviation(desired_angle);
@@ -358,7 +366,7 @@ void align_with(float desired_angle, int angle_margin) {
       rotate_cw();
       delay(pulse_duration);
       stopmotor();
-      delay(50);
+      delay(25);
     }
   } else if (angle_error >= angle_margin) {
     while (true) {
