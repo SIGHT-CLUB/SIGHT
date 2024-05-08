@@ -28,24 +28,23 @@ void setup() {
   pinMode(MOTOR2_A, OUTPUT);
   pinMode(MOTOR2_B, OUTPUT);
 
-  digitalWrite(MOTOR1_A, HIGH);
-  digitalWrite(MOTOR1_B, LOW);
-  analogWrite(MOTOR1_PWM, 255);
+  // digitalWrite(MOTOR1_A, HIGH);
+  // digitalWrite(MOTOR1_B, LOW);
+  // analogWrite(MOTOR1_PWM, 255);
 
-  digitalWrite(MOTOR2_A, LOW);
-  digitalWrite(MOTOR2_B, HIGH);
-  analogWrite(MOTOR2_PWM, 255);
+  // digitalWrite(MOTOR2_A, LOW);
+  // digitalWrite(MOTOR2_B, HIGH);
+  // analogWrite(MOTOR2_PWM, 255);
 }
 
 void loop() {
-  update_black_detections();
-  test_print_is_black_array();
+  // update_black_detections();
+  // test_print_is_black_array();
   //delay(2500);
-  analogWrite(MOTOR1_PWM, 0);
-  analogWrite(MOTOR2_PWM, 0);
+  move_forward_until_line_crossing(500);
 }
 
-uint8_t is_black[8] = { 0, 0, 0, 0, 0, 0 };  // if i'th sensor is black, set to 1. otherwise 0
+uint8_t is_black[8] = { 0, 0, 0, 0, 0, 0,0,0 };  // if i'th sensor is black, set to 1. otherwise 0
 uint8_t update_black_detections() {
   for (uint8_t i = 0; i < 8; i++) {
     int analog_value = analogRead(line_follower_analog_pins[i]);
@@ -55,13 +54,68 @@ uint8_t update_black_detections() {
   }
 }
 
+void move_forward_until_line_crossing(unsigned long timeout_ms) {
+  static float line_position = -99;  //-99 -> means no line is found.
+
+  unsigned long start_time = millis();
+  while (true) {
+    if (millis() - start_time > timeout_ms) break;  //exit the loop after a certain timeout(i.e.~open loop approximated movement time)
+
+    update_black_detections();
+    uint8_t number_of_blacks = 0;
+    for (uint8_t i = 0; i < 8; i++) {
+      if (is_black[i] == 1) number_of_blacks += 1;
+    }
+    if (number_of_blacks > 3) {  //line crossing is found, STOP
+      //TODO: maybe go forward a little so that RFID reader is read.
+      analogWrite(MOTOR1_PWM, 0);
+      analogWrite(MOTOR2_PWM, 0);
+      break;
+    } else if (number_of_blacks == 0) {  //line is lost, STOP
+      analogWrite(MOTOR1_PWM, 0);
+      analogWrite(MOTOR2_PWM, 0);
+      //TODO: Should try to find line. Using line_position may be beneficial. Note that it is 'STATIC'
+      break;
+    }
+    //=======================================================================================0
+    //number of blacks found is less than 2 and atleast 1 black is found, means the bug is stil on a straight line. Keep going forward with feedback.
+    // move forward with feedback
+    line_position = 0;
+    for (uint8_t i = 0; i < 8; i++) {
+      if (is_black[i] == 1) line_position += (i - (3.5));
+    }
+    line_position = line_position / float(number_of_blacks);  // Ensure that this is a float division
+    uint8_t BASE_PWM = 180;                                   // This is an emprical value which is found to be fine. Neither halts nor accelerates too fast.
+
+    uint8_t K_p = 5;
+    float del_PWM = K_p * line_position;  //line_pos is bound to [-3.5, 3.5]
+
+    int motor1_PWM = BASE_PWM - int(del_PWM);
+    int motor2_PWM = BASE_PWM + int(del_PWM);
+
+    //ensure that PWM values are bounded to [0,255];
+    if (motor1_PWM > 255) motor1_PWM = 255;
+    else if (motor1_PWM < 0) motor1_PWM = 0;
+    if (motor2_PWM > 255) motor2_PWM = 255;
+    else if (motor2_PWM < 0) motor2_PWM = 0;
+
+    Serial.println(String(motor1_PWM) + " , " + String(motor2_PWM));
+
+    //set directions so that it goes forward
+    digitalWrite(MOTOR1_A, HIGH);
+    digitalWrite(MOTOR1_B, LOW);
+    digitalWrite(MOTOR2_A, LOW);
+    digitalWrite(MOTOR2_B, HIGH);
+
+    //set PWM values
+    analogWrite(MOTOR1_PWM, motor1_PWM);
+    analogWrite(MOTOR2_PWM, motor2_PWM);
+  }
+}
+
 void test_print_is_black_array() {
   for (uint8_t i = 0; i < 8; i++) {
     Serial.print(String(is_black[i]) + " ");
   }
   Serial.println("");
 }
-
-
-
-
