@@ -41,6 +41,7 @@ void loop() {
   // update_black_detections();
   // test_print_is_black_array();
   move_forward_until_line_crossing(3000);
+  open_loop_go_forward(180);
   delay(2500);
 }
 
@@ -82,7 +83,7 @@ void move_forward_until_line_crossing(unsigned long timeout_ms) {
       //TODO: maybe go forward a little so that RFID reader is read.
       break;
     } else if (number_of_blacks == 0) {  //line is lost, STOP if it is not found for a while using the last line position
-      if (millis() - line_found_when > 150 && line_position != -99 ) {
+      if (millis() - line_found_when > 150 && line_position != -99) {
         analogWrite(MOTOR1_PWM, 0);
         analogWrite(MOTOR2_PWM, 0);
         line_position = -99;
@@ -129,6 +130,24 @@ void move_forward_until_line_crossing(unsigned long timeout_ms) {
     analogWrite(MOTOR1_PWM, motor1_PWM);
     analogWrite(MOTOR2_PWM, motor2_PWM);
   }
+}
+
+void open_loop_go_forward(uint16_t duration) {
+  //Set directions so that bug tries to go forward
+  digitalWrite(MOTOR1_A, HIGH);
+  digitalWrite(MOTOR1_B, LOW);
+  digitalWrite(MOTOR2_A, LOW);
+  digitalWrite(MOTOR2_B, HIGH);
+
+  //set PWM values
+  analogWrite(MOTOR1_PWM, 240);
+  analogWrite(MOTOR2_PWM, 240);
+
+  delay(duration);
+
+  //stop motors
+  analogWrite(MOTOR1_PWM, 0);
+  analogWrite(MOTOR2_PWM, 0);
 }
 
 void test_print_is_black_array() {
