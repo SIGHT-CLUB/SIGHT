@@ -40,9 +40,11 @@ void setup() {
 void loop() {
   // update_black_detections();
   // test_print_is_black_array();
-  move_forward_until_line_crossing(3000);
-  open_loop_go_forward(180);
+
+  // move_forward_until_line_crossing(3000);
+  // open_loop_go_forward(180);
   delay(2500);
+  open_loop_turn_right(180);
 }
 
 uint8_t is_black[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };  // if i'th sensor is black, set to 1. otherwise 0
@@ -149,6 +151,25 @@ void open_loop_go_forward(uint16_t duration) {
   analogWrite(MOTOR1_PWM, 0);
   analogWrite(MOTOR2_PWM, 0);
 }
+
+void open_loop_turn_right(uint16_t duration) {
+
+  digitalWrite(MOTOR1_A, HIGH);
+  digitalWrite(MOTOR1_B, LOW);
+  digitalWrite(MOTOR2_A, HIGH);
+  digitalWrite(MOTOR2_B, LOW);
+
+  //set PWM values
+  analogWrite(MOTOR1_PWM, 240);
+  analogWrite(MOTOR2_PWM, 240);
+
+  delay(duration);
+
+  //stop motors
+  analogWrite(MOTOR1_PWM, 0);
+  analogWrite(MOTOR2_PWM, 0);
+}
+
 
 void test_print_is_black_array() {
   for (uint8_t i = 0; i < 8; i++) {
