@@ -41,11 +41,15 @@ void loop() {
   // update_black_detections();
   // test_print_is_black_array();
 
-  move_forward_until_line_crossing(5000);
+  // move_forward_until_line_crossing(5000);
+  // delay(1000);
+  // open_loop_go_forward_smooth(325);
+  // delay(1000);
+  // open_loop_turn_right_smooth(210);
+  // delay(2500);
+  move_forward_until_line_crossing_hard(5000);
   delay(1000);
-  open_loop_go_forward_smooth(325);
-  delay(1000);
-  open_loop_turn_right_smooth(210);
+  open_loop_turn_right_smooth(275);
   delay(2500);
 }
 
@@ -56,6 +60,101 @@ uint8_t update_black_detections() {
     uint8_t digital_val = 0;
     if (analog_value > BLACK_THRESHOLD) digital_val = 1;
     is_black[i] = digital_val;
+  }
+}
+
+void move_forward_until_line_crossing_hard(unsigned long timeout_ms) {
+  //TODO: this function should return why it is returned, i.e. line is lost, crossing is found etc.
+  static float line_position = -99;          //-99 -> means no line is found.
+  static unsigned long line_found_when = 0;  //When the last time a black is detected
+
+  unsigned long start_time = millis();
+  while (true) {
+    if (millis() - start_time > timeout_ms) break;  //exit the loop after a certain timeout(i.e.~open loop approximated movement time)
+
+    update_black_detections();
+    uint8_t number_of_blacks = 0;
+    for (uint8_t i = 0; i < 8; i++) {
+      if (is_black[i] == 1) number_of_blacks += 1;
+    }
+    if (number_of_blacks > 4) {  //line crossing is found, STOP
+      //HARD BREAK for a short time! Then stop the motors.
+      delay(165);
+      digitalWrite(MOTOR1_A, LOW);
+      digitalWrite(MOTOR1_B, HIGH);
+      digitalWrite(MOTOR2_A, HIGH);
+      digitalWrite(MOTOR2_B, LOW);
+      analogWrite(MOTOR1_PWM, 255);
+      analogWrite(MOTOR2_PWM, 255);
+      delay(75);
+      analogWrite(MOTOR1_PWM, 0);
+      analogWrite(MOTOR2_PWM, 0);
+      //TODO: maybe go forward a little so that RFID reader is read.
+      break;
+    } else if (number_of_blacks == 0) {  //line is lost, STOP if it is not found for a while using the last line position
+      if (millis() - line_found_when > 500 && line_position != -99) {
+        analogWrite(MOTOR1_PWM, 0);
+        analogWrite(MOTOR2_PWM, 0);
+        line_position = -99;
+        break;
+      } else {
+        //continue moving forward using the last position
+      }
+
+      //TODO: Should try to find line. Using line_position may be beneficial. Note that it is 'STATIC'
+    }
+    //=======================================================================================0
+    //number of blacks found is less than 2 and atleast 1 black is found, means the bug is stil on a straight line. Keep going forward with feedback.
+    // move forward with feedback
+    line_found_when = millis();
+
+    line_position = 0;
+    for (uint8_t i = 0; i < 8; i++) {
+      if (is_black[i] == 1) line_position += (i - (3.5));
+    }
+    line_position = line_position / float(number_of_blacks);  // Ensure that this is a float division
+
+    if (line_position > 1) {
+      //Go straight
+
+      //set directions so that it goes forward
+      digitalWrite(MOTOR1_A, HIGH);
+      digitalWrite(MOTOR1_B, LOW);
+      digitalWrite(MOTOR2_A, LOW);
+      digitalWrite(MOTOR2_B, HIGH);
+
+      //set PWM values
+      analogWrite(MOTOR1_PWM, 200);
+      analogWrite(MOTOR2_PWM, 245);
+      delay(25);
+
+    } else if (line_position < -1) {
+      //Go straight
+
+      //set directions so that it goes forward
+      digitalWrite(MOTOR1_A, HIGH);
+      digitalWrite(MOTOR1_B, LOW);
+      digitalWrite(MOTOR2_A, LOW);
+      digitalWrite(MOTOR2_B, HIGH);
+
+      //set PWM values
+      analogWrite(MOTOR1_PWM, 245);
+      analogWrite(MOTOR2_PWM, 200);
+      delay(25);
+    } else {
+      //Go straight
+
+      //set directions so that it goes forward
+      digitalWrite(MOTOR1_A, HIGH);
+      digitalWrite(MOTOR1_B, LOW);
+      digitalWrite(MOTOR2_A, LOW);
+      digitalWrite(MOTOR2_B, HIGH);
+
+      //set PWM values
+      analogWrite(MOTOR1_PWM, 230);
+      analogWrite(MOTOR2_PWM, 230);
+      delay(25);
+    }
   }
 }
 
@@ -108,7 +207,7 @@ void move_forward_until_line_crossing(unsigned long timeout_ms) {
       if (is_black[i] == 1) line_position += (i - (3.5));
     }
     line_position = line_position / float(number_of_blacks);  // Ensure that this is a float division
-    uint8_t BASE_PWM = 200;                                   // This is an emprical value which is found to be fine. Neither halts nor accelerates too fast.
+    uint8_t BASE_PWM = 205;                                   // This is an emprical value which is found to be fine. Neither halts nor accelerates too fast.
 
     uint8_t K_p = 6;
     float del_PWM = K_p * line_position;  //line_pos is bound to [-3.5, 3.5]
