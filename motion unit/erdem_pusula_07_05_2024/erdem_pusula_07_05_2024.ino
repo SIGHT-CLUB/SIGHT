@@ -98,7 +98,7 @@ void setup() {
   Serial.println("Battery Voltage: ~" + String(BATTERY_VOLTAGE) + "V");
 }
 
-float desired_rpm = 75;
+float desired_rpm = 150;
 uint8_t min_pwm = 70;
 uint8_t max_pwm = 150;
 
@@ -124,7 +124,7 @@ void loop() {
     counter = 0;
   }
   delay(1500);
-  align_with(reference, 1);
+  align_with(reference, 3);
   delay(1500);
 
   left_pwm = min_pwm;
@@ -146,7 +146,7 @@ void loop() {
     distance_x = distance_mag * sin(radian_deviation);  //term with sine
     distance_y = distance_mag * cos(radian_deviation);  //term with cosine
     Serial.println("Distance: " + String(distance_mag) + ", Distance X: " + String(distance_x) + ", Distance Y: " + String(distance_y));
-    if (distance_y > 0.225) break;
+    if (distance_y > 0.5) break;
 
     float del_rpm = percentage_kp * angle_deviation;
     if (del_rpm < -del_rpm_bound) {
