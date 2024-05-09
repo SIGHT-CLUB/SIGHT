@@ -46,13 +46,13 @@ void loop() {
   //set_motor_speeds(-0.1, 0.1);
 
   move_forward_until_line_crossing(5000);
-  delay(2500);
+  delay(100);
 
   open_loop_go_forward(0.09);
-  delay(2500);
+  delay(100);
 
   open_loop_turn_right(74.0);//this turns 90 degree. the 16 degree is to compansate the inertial energy accumulated. 
-  delay(2500);
+  delay(100);
 
 }
 
