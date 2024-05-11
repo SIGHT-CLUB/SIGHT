@@ -44,7 +44,7 @@ while (millis() - listen_ping_start_time < LISTEN_DURATION_MS) {
   for (uint8_t i = 0; i < 8; i++) {
     if (digitalRead(IR_RECEIVE_PIN) == 1) {
       listen_test();
-      Serial.println("Starting ping listeing");
+      Serial.println("Starting ping listening");
       break;
     }
     else{
