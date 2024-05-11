@@ -1,3 +1,5 @@
+#include <HMC5883L_Simple.h>
+
 /*
 ===============================================================================================================
 QMC5883LCompass.h Library XYZ Example Sketch
@@ -41,11 +43,11 @@ void setup() {
 
 
 void loop() {
-  //float angle = return_angle();
-  //Serial.println(angle);
+  float angle = return_angle();
+  Serial.println(angle);
 
   float deviation = return_angle_deviation(210);
-  Serial.println(deviation);
+  //Serial.println(deviation);
 
   int base_pwm_zaa = 75;
   float kp = 3.5;
