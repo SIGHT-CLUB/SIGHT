@@ -91,6 +91,7 @@ void set_active_s_IR(uint8_t pick_this_s) {
     digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
   }
 }
+
 void shift_reg_insert_zero() {
   PORTB = PORTB & B11111110; //define SHIFT_REG_INPUT 8 (portb-0)->LOW
   //digitalWrite(SHIFT_REG_INPUT, LOW);

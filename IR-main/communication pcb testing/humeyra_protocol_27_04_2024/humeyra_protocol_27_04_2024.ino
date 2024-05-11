@@ -8,7 +8,7 @@
 
 uint8_t mode_of_operation = 1; //0:listen, 1:ping, 2:ping_acknowledgement & listening for message, 3:sending message, 4:message_acknowledgment, 
 unsigned long last_mode_change = 0;
-uint8_t ID = 2; // MU SPECIFIC INFO bits
+uint8_t ID = 1; // MU SPECIFIC INFO bits
 
 #include "IR_module_header.h";
 
@@ -31,10 +31,29 @@ void loop() {
 set_active_s(active_s);
 
 ping_test();
-listen_test();
 
-//active_s = active_s + 1;
-//if (active_s == 8){active_s = 0;}
+active_s = active_s + 1;
+if (active_s == 8){active_s = 0;}
+
+digitalWrite(IR_LED, LOW);
+
+unsigned long listen_ping_start_time = millis();
+
+while (millis() - listen_ping_start_time < LISTEN_DURATION_MS) {
+  set_active_s(0);
+  for (uint8_t i = 0; i < 8; i++) {
+    if (digitalRead(IR_RECEIVE_PIN) == 1) {
+      listen_test();
+      Serial.println("Starting ping listeing");
+      break;
+    }
+    else{
+      if(i != 7){set_active_s(i+1);} 
+    }
+  }
+}
+
+
 }
 
 
@@ -82,7 +101,7 @@ void listen_test(){
   //return;
 
   // unsigned long listen_duration = random(500,600);
-  unsigned long listen_duration = 100;
+  unsigned long listen_duration = 160;
 
 
   Serial.println("\n Listening for a ping or ping ack...");
@@ -289,7 +308,7 @@ void send_message()
 
 uint8_t listen_to_message(){
 
-unsigned long listen_duration = 350;
+unsigned long listen_duration = 500;
 
 Serial.println("\n Listening for the message...");
 unsigned long start_time = millis() ;
@@ -353,7 +372,7 @@ return 0;
 
 uint8_t listen_for_message_acknowledgement(){
 
-unsigned long listen_duration = 245;
+unsigned long listen_duration = 300;
 
 Serial.println("\n Listening for the message acknowledgement...");
 unsigned long start_time = millis() ;

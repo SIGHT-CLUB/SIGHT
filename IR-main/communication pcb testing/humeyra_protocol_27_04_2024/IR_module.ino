@@ -1,9 +1,9 @@
 //Refer to: https://www.ersinelektronik.com/class/INNOVAEditor/assets/Datasheets/TSOP1136.pdf
 
-uint8_t NUMBER_OF_PACKAGE_BYTES = 4;  // Except for the actual message this remains 4.
+uint8_t NUMBER_OF_PACKAGE_BYTES = 8;  //cannot be smaller than 3.
 unsigned long TRIGGER_DURATION_US = (BURST_HALF_PERIOD_US * 2) * K_NUMBER_OF_BURSTS;
 
-uint8_t IR_module_buffer[16];
+uint8_t IR_module_buffer[8];
 
 void initialize_IR_module() {
   pinMode(IR_RECEIVE_PIN, INPUT);
@@ -65,7 +65,8 @@ unsigned long TRANSMISSION_START_TIME = 0;
 
 void transmit_zero() {
   TRANSMISSION_START_TIME = micros();
-  while (micros() - TRANSMISSION_START_TIME < (TRIGGER_DURATION_US - 30)) {
+  while (micros() - TRANSMISSION_START_TIME < (TRIGGER_DURATION_US -30)) {
+    // 32 us
     digitalWrite(IR_LED, HIGH);
     delayMicroseconds(BURST_HALF_PERIOD_US);
     digitalWrite(IR_LED, LOW);
@@ -75,8 +76,9 @@ void transmit_zero() {
 
 void transmit_one() {
   TRANSMISSION_START_TIME = micros();
+  // 12 us
   digitalWrite(IR_LED, LOW);
-  delayMicroseconds(TRIGGER_DURATION_US - 10);
+  delayMicroseconds(TRIGGER_DURATION_US -10);
 }
 
 uint8_t listen_IR() {
@@ -126,6 +128,26 @@ uint8_t listen_IR() {
 
   return 0;  // No signal is detected. return 0
 }
+
+// uint8_t listen_IR_for_ping_begin() {
+//   digitalWrite(IR_LED, LOW);
+
+//   unsigned long listen_start_time = millis();
+//   uint8_t is_received = 0;
+
+//   zero_shift_register();
+//   while (millis() - listen_start_time < LISTEN_DURATION_MS) {
+//     shift_reg_insert_one();
+//     for (uint8_t i = 0; i < 8; i++) {
+//       if (digitalRead(IR_RECEIVE_PIN) == 1) {
+//         is_received = 1;
+//         break;
+//       }
+//       shift_reg_insert_zero();
+//     }
+//     if (is_received)break;
+//   }
+// }
 
 //MAGICAL CRC_16 MODBUS code.
 uint16_t generate_CRC_16_bit() {
