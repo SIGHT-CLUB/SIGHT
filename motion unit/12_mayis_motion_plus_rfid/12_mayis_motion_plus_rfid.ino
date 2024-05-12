@@ -18,16 +18,13 @@
 #define FOLLOWING_THE_LINE 1
 #define AT_CROSS_SECTION 2
 
+
 unsigned int threshold = 900;  // Threshold for detecting black
 uint8_t indicator = 0;
 uint8_t oldData = 0;
 uint16_t turn_delay = 1000;
 unsigned long oldData_startTime = 0;
-
-
-
-
-
+int buzzerPin = 8;
 
 
 uint8_t line_follower_analog_pins[8] = { A0, A1, A2, A3, A4, A5, A6, A7 };  // A0-> 1 (left) A7->8 (right)Define the analog input pins
@@ -54,8 +51,8 @@ void setup() {
   pinMode(MOTOR2_PWM, OUTPUT);
   pinMode(MOTOR2_A, OUTPUT);
   pinMode(MOTOR2_B, OUTPUT);
-   pinMode(RFID_READ, INPUT);
-
+  pinMode(RFID_READ, INPUT);
+  pinMode(buzzerPin, OUTPUT);
   // digitalWrite(MOTOR1_A, HIGH);
   // digitalWrite(MOTOR1_B, LOW);
   // analogWrite(MOTOR1_PWM, 255);
@@ -63,18 +60,14 @@ void setup() {
   // digitalWrite(MOTOR2_A, LOW);
   // digitalWrite(MOTOR2_B, HIGH);
   // analogWrite(MOTOR2_PWM, 255);
-
-
 }
 
 void loop() {
   //set_motor_speeds(-0.1, 0.1);
 
-  
-  
 
-    
-  if(digitalRead(RFID_READ)==1){
+
+  if (digitalRead(RFID_READ) == 1) {
     Serial.println("Read an RFID, stopping.1");
     set_motor_speeds(0, 0);
     delay(700);
@@ -82,65 +75,141 @@ void loop() {
   }
 
   unsigned long currentTime = millis();
-  if (currentTime - oldData_startTime > 3000){oldData = 0;}
+  if (currentTime - oldData_startTime > 3000) { oldData = 0; }
   //Checking if there is any new data from the RFID reader
-  if (Serial.available() > 0) { // Check if data is available to read
+  if (Serial.available() > 0) {  // Check if data is available to read
 
-    uint8_t receivedNum = Serial.read(); // Read the incoming byte
-    if (receivedNum != oldData){
-    Serial.print("Received: ");
-    Serial.println(receivedNum); // Print the received character
-    uint8_t x = int(receivedNum) / 16;
-    uint8_t y = int(receivedNum) % 16;
-    Serial.println(x);
-    Serial.println(y);
+    uint8_t receivedNum = Serial.read();
 
-    Serial.println("An RFID card has been read");
-    if(x==1 && y==1){
-      Serial.println("Starting rotating CW");
-      open_loop_turn_right(74.0);
+    // Read the incoming byte
+    if (receivedNum != oldData) {
+      Serial.print("Received: ");
+      Serial.println(receivedNum);  // Print the received character
+      uint8_t x = int(receivedNum) / 16;
+      uint8_t y = int(receivedNum) % 16;
+      if ((x > 0 || x < 10) && (y > 0 || y < 10)) {
+        digitalWrite(buzzerPin, HIGH);  // Turn the buzzer on
+        delay(500);                     // Wait for 1 second (1000 milliseconds)
+        digitalWrite(buzzerPin, LOW);   // Turn the buzzer off
+        delay(500);
+      }
+      Serial.println(x);
+      Serial.println(y);
+
+      Serial.println("An RFID card has been read");
+
+
+      if (x == 5 && y == 5) {
+        digitalWrite(buzzerPin, HIGH);  // Turn the buzzer on
+        delay(500);                     // Wait for 1 second (1000 milliseconds)
+        digitalWrite(buzzerPin, LOW);   // Turn the buzzer off
+        delay(500);
+        digitalWrite(buzzerPin, HIGH);  // Turn the buzzer on
+        delay(500);                     // Wait for 1 second (1000 milliseconds)
+        digitalWrite(buzzerPin, LOW);   // Turn the buzzer off
+        delay(500);
+        digitalWrite(buzzerPin, HIGH);  // Turn the buzzer on
+        delay(500);                     // Wait for 1 second (1000 milliseconds)
+        digitalWrite(buzzerPin, LOW);   // Turn the buzzer off
+        delay(500);
+      }
+
+
+      if (x == 8 && y == 1) {
+        open_loop_turn_left(74.0);
+      }
+      if (x == 8 && y == 2) {
+        open_loop_turn_left(74.0);
+      }
+      if (x == 1 && y == 2) {
+        open_loop_turn_right(74.0);
+      }
+      if (x == 1 && y == 3) {
+        open_loop_turn_right(74.0);
+      }
+      if (x == 8 && y == 3) {
+        open_loop_turn_left(74.0);
+      }
+      if (x == 8 && y == 4) {
+        open_loop_turn_left(74.0);
+      }
+
+      if (x == 1 && y == 4) {
+        open_loop_turn_right(74.0);
+      }
+      if (x == 1 && y == 5) {
+        open_loop_turn_right(74.0);
+      }
+      if (x == 8 && y == 5) {
+        open_loop_turn_left(74.0);
+      }
+      if (x == 8 && y == 6) {
+        open_loop_turn_left(74.0);
+      }
+
+
+      // if(x==1 && y==1){
+      //   Serial.println("Starting rotating CW");
+      //   open_loop_turn_right(155.0);
+      // }
+
+      // if(x==1 && y==2){
+      //   open_loop_turn_right(155.0);
+      //   Serial.println("Starting rotating CW");
+
+      // }
+
+      // if(x==2 && y==1){
+      //   Serial.println("Starting rotating CW");
+      //   open_loop_turn_left(155.0);
+      // }
+
+      // if(x==2 && y==2){
+      //   open_loop_turn_right(155.0);
+      //   Serial.println("Starting rotating CW");
+
+      // }
+
+      // if(x==1 && y==3){
+      //   open_loop_turn_left(155.0);
+      //   Serial.println("Starting rotating CW");
+
+      // }
+
+      // if(x==2 && y==3){
+      //   open_loop_turn_right(155.0);
+      //   Serial.println("Starting rotating CW");
+
+
+      // }
+
+      // if(x==3 && y==1){
+      //   open_loop_turn_right(155.0);
+      //   Serial.println("Starting rotating CW");
+
+      // }
+
+      // if(x==3 && y==2){
+      //   open_loop_turn_left(155.0);
+      //   Serial.println("Starting rotating CW");
+
+      // }
+
+      // if(x==3 && y==3){
+      //   open_loop_turn_right(155.0);
+      //   Serial.println("Starting rotating CW");
+
+      // }
+
+      oldData = receivedNum;
+      oldData_startTime = millis();
     }
+  }
+  move_forward_until_line_crossing(5000);
+  delay(100);
 
-    if(x==1 && y==2){
-      open_loop_turn_right(74.0);
-      Serial.println("Starting rotating CW");
-
-    }
-
-    if(x==1 && y==3){
-      Serial.println("Starting rotating CW");
-      open_loop_turn_right(74.0);
-    }
-
-    if(x==2 && y==1){
-      open_loop_turn_right(74.0);
-      Serial.println("Starting rotating CW");
-
-    }
-
-    if(x==2 && y==2){
-      open_loop_turn_right(74.0);
-      Serial.println("Starting rotating CW");
-
-    }
-
-    if(x==2 && y==3){
-      open_loop_turn_right(74.0);
-      Serial.println("Starting rotating CW");
-
-    }
-
-    oldData = receivedNum;
-    oldData_startTime = millis();
-    }
-}
- move_forward_until_line_crossing(5000);
-   delay(100);
-
-
-   open_loop_go_forward(0.06);
-   delay(100);
-
+  open_loop_go_forward(0.09);
+  delay(100);
 }
 
 
@@ -215,7 +284,7 @@ void open_loop_turn_right(float angle) {
   set_motor_speeds(0, 0);
 }
 
-void open_loop_turn_left (float angle){
+void open_loop_turn_left(float angle) {
   if (angle > 360) angle = 360;
   else if (angle < -360) angle = -360;
 
@@ -229,7 +298,6 @@ void open_loop_turn_left (float angle){
 
   delay(delay_duration);
   set_motor_speeds(0, 0);
-
 }
 
 void open_loop_go_forward(float distance) {
@@ -301,8 +369,14 @@ void move_forward_until_line_crossing(unsigned long timeout_ms) {
     }
 
     float BASE_SPEED = 0.17;                 //speed that each motor should go with when the line is centered in m/s
-    float del_speed = line_position * 0.01;  // m/s
-    set_motor_speeds(BASE_SPEED - del_speed, BASE_SPEED + del_speed);
+    float del_speed = line_position * 0.03;  // m/s
+    float slow_side = BASE_SPEED - del_speed;
+    if (slow_side < 0.10) {
+      slow_side = 0.10;
+    }
+    set_motor_speeds(slow_side, BASE_SPEED + del_speed);
   }
 }
 
+void turn_till_line() {
+}
