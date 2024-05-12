@@ -10,7 +10,7 @@ void setup() {
   digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
   Serial.begin(115200);
   initialize_IR_module();
-  set_active_s(0);
+  set_active_s(4);
 }
 
 void loop() {
@@ -32,7 +32,7 @@ void communication_test() {
   }
 
   if (Serial.available() > 0) {
-    set_active_s(0);
+    set_active_s(4);
     int incoming_byte = Serial.read();
     uint16_t number_of_package_bytes = get_number_of_package_bytes();
 
