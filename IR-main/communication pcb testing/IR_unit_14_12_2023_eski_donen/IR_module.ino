@@ -77,7 +77,6 @@ void transmit_one() {
   delayMicroseconds(TRIGGER_DURATION_US-10);
 }
 
-
 void shift_reg_insert_zero() {
   PORTB = PORTB & B11111110; //define SHIFT_REG_INPUT 8 (portb-0)->LOW
   //digitalWrite(SHIFT_REG_INPUT, LOW);
@@ -118,10 +117,11 @@ uint8_t listen_IR() {
   unsigned long listen_start_time = millis();
   uint8_t is_received = 0;
 
+  uint8_t shift_index = 0;
   zero_shift_register();
   while (millis() - listen_start_time < LISTEN_DURATION_MS) {
     shift_reg_insert_one();
-    for (uint8_t i = 0; i < 8; i++) {
+    for (shift_index = 0; shift_index < 8; shift_index++) {
       if (digitalRead(IR_RECEIVE_PIN) == 1) {
         is_received = 1;
         break;
@@ -153,6 +153,7 @@ uint8_t listen_IR() {
     uint8_t CRC_SIG = CRC_16 >> 8;
     uint8_t CRC_LST = CRC_16 % 256;
     if (IR_module_buffer[NUMBER_OF_PACKAGE_BYTES - 1] == CRC_LST && IR_module_buffer[NUMBER_OF_PACKAGE_BYTES - 2] == CRC_SIG) {
+      Serial.print(String(shift_index)+" -> ");
       for (uint8_t i = 0; i < NUMBER_OF_PACKAGE_BYTES; i++) {
         Serial.print(IR_module_buffer[i]);
         Serial.print(' ');
