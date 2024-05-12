@@ -179,7 +179,12 @@ uint8_t listen_IR() {
       Serial.println();
       return 1;  //Package is valid. return 1
     } else {
-      Serial.println("Package corrupted");
+      Serial.print("Package corrupted -> ");
+      for (uint8_t i = 0; i < NUMBER_OF_PACKAGE_BYTES; i++) {
+        Serial.print(IR_module_buffer[i]);
+        Serial.print(' ');
+      }
+      Serial.println();
       return 2;  // CRC check is failed. return 2
     }
   }
