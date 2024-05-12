@@ -141,8 +141,8 @@ void listen_for_ping(){
 
   for (uint8_t i = 0; i < 9; i++) {
     set_active_s(listen_s);
-    Serial.print(" Current Receiver :");
-    Serial.println(currently_active_s);
+    //Serial.print(" Current Receiver :");
+    //Serial.println(currently_active_s);
     unsigned long shift_start_time = millis();
     while (millis() - shift_start_time < shift_time){
       if (digitalRead(IR_RECEIVE_PIN) == 1) {
