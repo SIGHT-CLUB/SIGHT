@@ -132,10 +132,11 @@ uint8_t listen_IR() {
   unsigned long listen_start_time = millis();
   uint8_t is_received = 0;
 
+  uint8_t i_dummy = 0;
   zero_shift_register();
   while (millis() - listen_start_time < LISTEN_DURATION_MS) {
     shift_reg_insert_one();
-    for (uint8_t i = 0; i < 8; i++) {
+    for (i_dummy = 0; i_dummy < 8; i_dummy++) {
       if (digitalRead(IR_RECEIVE_PIN) == 1) {
         is_received = 1;
         break;
@@ -162,6 +163,8 @@ uint8_t listen_IR() {
         continue;
       }
     }
+
+    Serial.println("Triggered shift index: " + String(i_dummy) ); // for debug purposes
 
     uint16_t CRC_16 = generate_CRC_16_bit();
     uint8_t CRC_SIG = CRC_16 >> 8;
