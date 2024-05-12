@@ -1,7 +1,7 @@
 
 #include "IR_module_header.h";
 
-uint8_t mode_of_operation = 0; //0: listen for ping or ack, 1:ping, 2: ack for ping, 3: send data, 4: listen for data, 5: ack for data
+uint8_t mode_of_operation = 0; //0: ping, 1:listen for ack, 2:listen for ping, 3: send data, 4: listen for data     //2: ack for ping, 3: send data, 4: listen for data, 5: ack for data
 unsigned long last_mode_change = 0;
 uint8_t package_count = 0;
 uint8_t ID = 2; //4 bits
@@ -18,32 +18,41 @@ void setup() {
   set_active_s(4);
 }
 
+uint8_t currently_active_s = 99;
 uint8_t active_s = 4;
+uint8_t num_trials = 1;
+uint8_t enable = 0;
 
 void loop() {
 
 set_active_s(active_s);
-
- //communication_test();
+//communication_test();
 communication();
 
-active_s = active_s + 1;
-if (active_s == 8){active_s = 0;}
+if (num_trials == 2){
+  active_s = active_s + 1;
+  num_trials = 1;
+  if (active_s == 8){active_s = 0;}
+} else{num_trials = num_trials + 1;}
 
 }
 
 void communication() {
+if(!enable){
+delay(random(0, 300));
+}
 
 ping_test();
-listen_test();
+listen_for_ack();
 transmit_data();
+listen_for_ping();
 listen_for_data_test();
 
 }
 
 void ping_test() {
   //check the mode of operation
-  if (mode_of_operation != 1)return;
+  if (mode_of_operation != 0)return;
   Serial.println("\n Pinging the IR module...");
 
   //set the number of package bytes to 4
@@ -55,17 +64,106 @@ void ping_test() {
  
   //SEND MESSAGE -------------
   send_ping_message(x, y); // x, y, intenion, ID
-  mode_of_operation = 0;
+  mode_of_operation = 1;
 }
 
-void listen_test(){
+
+void listen_for_ack(){
   //check the mode of operation
-  if (mode_of_operation != 0)return;
+  if (mode_of_operation != 1)return;
 
   // ping and ack is 4 bytes to change the number of bytes accordingly
   set_number_of_package_bytes(4);
 
-  Serial.println("\n Currently Listening for Ping or Ack...");
+  Serial.println("\n Currently Listening for Ack...");
+
+  // set the listen time
+  unsigned long listen_duration = 300;
+  // Serial.println("\nThe random number is: ");
+
+  // check the time to listen
+  unsigned long start_time = millis() ;
+
+  // if the time passed is shorter than the wait time, listen
+  while(millis() - start_time < listen_duration){
+
+    // listen
+    uint8_t listening_result = listen_IR(); //listens for 20ms. 0:no package, 1:successful package, 2:corrupted package
+
+    if (listening_result == 2){
+      Serial.println("\n Corrupted Acknowledgement Received...");
+      Serial.print("From receiver");
+      Serial.println(currently_active_s);      
+    }
+    // if smt is received, check it
+    if (listening_result == 1){
+
+      // check intention
+      uint8_t incoming_first_byte = get_buffer(0);
+      uint8_t incoming_second_byte = get_buffer(1);
+
+      uint8_t  incoming_x = incoming_first_byte >> 4;
+      uint8_t  incoming_y = incoming_first_byte % 16;
+
+      uint8_t  incoming_intention = incoming_second_byte >> 4;
+      uint8_t  incoming_ID = incoming_second_byte % 16;
+
+      // Serial.println("x: " + String(x) + " y: " + String(y) + " intention: " + String(intention) + " ID: " + String(ID));
+      // Serial.println("Something is received");
+
+      //if the intention is suitable for ack
+      if (incoming_intention == 2){
+
+      //change the mode to transmit message
+      mode_of_operation = 3;
+      package_count = 0;
+      Serial.println("\n Acknowledgement Received...");
+      Serial.print("From receiver");
+      Serial.println(currently_active_s);
+      return;
+
+      }
+
+
+      //if the intention is suitable for ping
+      if (incoming_intention == 1){
+        Serial.println("Ping is received");
+        Serial.print("From receiver");
+        Serial.println(currently_active_s);
+        // display ping message
+        display_ping_message();
+
+        // transmit ack message
+
+        //Data ---------------
+        uint8_t x = 5; // 4 bits
+        uint8_t y = 6; // 4 bits
+
+        //SEND MESSAGE -------------
+        send_ack_message(x, y); // x, y, intenion, ID
+
+        Serial.println("Acknowledgement sent");
+
+        // set the mode of operation accordingly
+        mode_of_operation = 4; // if ping is received, change to data listening mode
+        return;
+      }
+
+    }
+  }
+
+  mode_of_operation = 2; //if no ack is received, change to listen for ping mode
+}
+
+void listen_for_ping(){
+
+  //check the mode of operation
+  if (mode_of_operation != 2)return;
+
+  // ping and ack is 4 bytes to change the number of bytes accordingly
+  set_number_of_package_bytes(4);  
+
+  Serial.println("\n Currently Listening for Ping...");
 
   // set the listen time
   unsigned long listen_duration = 300;
@@ -97,17 +195,7 @@ void listen_test(){
       // Serial.println("Something is received");
 
       //if the intention is suitable for ping
-      if (incoming_intention == 2){
-
-      //change the mode to transmit message
-      mode_of_operation = 3;
-      package_count = 0;
-      Serial.println("\n Acknowledgement Received...");
-      return;
-
-      } //if the intention is suitable for ack
-      
-      else if (incoming_intention == 1){
+      if (incoming_intention == 1){
         Serial.println("Ping is received");
 
         // display ping message
@@ -130,8 +218,6 @@ void listen_test(){
       }
     }
   }
-
-  mode_of_operation = 1; //if no ping or ack is received, change to ping mode
 }
 
 void transmit_data(){
@@ -156,7 +242,7 @@ void transmit_data(){
   send_data_message(first_x, first_y); // x, y, data
 
   // set the wait time for ack
-  unsigned long listen_duration = random(500,1000);
+  unsigned long listen_duration = 200;
 
   // check the time to wait for ack
   unsigned long start_time = millis() ;
@@ -196,7 +282,7 @@ void transmit_data(){
     } 
   }
 
-  mode_of_operation = 0; // change to listen mode
+  mode_of_operation = 2; // change to listen mode
 }
 
 
@@ -222,27 +308,10 @@ void listen_for_data_test(){
     // listen
     uint8_t listening_result = listen_IR(); //listens for 20ms. 0:no package, 1:successful package, 2:corrupted package
 
-    // if (listening_result == 2){
-    //   uint8_t incoming_first_byte = get_buffer(0);
-    //   uint8_t incoming_second_byte = get_buffer(1);
-
-    //   uint8_t  incoming_x = incoming_first_byte >> 4;
-    //   uint8_t  incoming_y = incoming_first_byte % 16;
-
-    //   uint8_t  incoming_intention = incoming_second_byte >> 4;
-    //   uint8_t  incoming_ID = incoming_second_byte % 16;
-
-    //   Serial.println("\n\nx"+ String(incoming_x));
-    //   Serial.println("y"+ String(incoming_y));
-    //   Serial.println("intention"+ String(incoming_intention));
-    //   Serial.println("ID"+ String(incoming_ID));
-    //   Serial.println("\n1st byte"+ String(get_buffer(2)));
-    //   Serial.println("2st byte"+ String(get_buffer(3)));
-    //   Serial.println("3st byte"+ String(get_buffer(4)));
-    //   Serial.println("4st byte"+ String(get_buffer(5)));
-    //   Serial.println("CRC1"+ String(get_buffer(6)));
-    //   Serial.println("CRC2"+ String(get_buffer(7)));
-    // }
+    if (listening_result == 2){
+      Serial.println("Corrupted Package");
+      debug_unofficial_litening_result();
+    }
 
     // if smt is received, check it
     if (listening_result == 1){
@@ -262,6 +331,7 @@ void listen_for_data_test(){
       if (incoming_intention == 3){
 
         Serial.println("Data is received");
+        enable = 1;
 
         Serial.println("Data is" );
         for(int i = 0; i < 4; i++){
@@ -284,12 +354,38 @@ void listen_for_data_test(){
         send_ack_for_data_message(x, y); // x, y, intenion, ID
 
         Serial.println("Acknowledgement for Data sent");
-        mode_of_operation = 1; // change to ping mode
+        mode_of_operation = 0; // change to ping mode
 
-        break;
+        return;
       }
     }
-  } mode_of_operation = 1; // change to ping mode
+  }
+  Serial.println("Did not receive the data :(");
+  mode_of_operation = 0; // change to ping mode
+}
+
+
+void debug_unofficial_litening_result(){
+  
+    uint8_t incoming_first_byte = get_buffer(0);
+    uint8_t incoming_second_byte = get_buffer(1);
+
+    uint8_t  incoming_x = incoming_first_byte >> 4;
+    uint8_t  incoming_y = incoming_first_byte % 16;
+
+    uint8_t  incoming_intention = incoming_second_byte >> 4;
+    uint8_t  incoming_ID = incoming_second_byte % 16;
+
+    Serial.println("\n\nx"+ String(incoming_x));
+    Serial.println("y"+ String(incoming_y));
+    Serial.println("intention"+ String(incoming_intention));
+    Serial.println("ID"+ String(incoming_ID));
+    Serial.println("\n1st byte"+ String(get_buffer(2)));
+    Serial.println("2st byte"+ String(get_buffer(3)));
+    Serial.println("3st byte"+ String(get_buffer(4)));
+    Serial.println("4st byte"+ String(get_buffer(5)));
+    Serial.println("CRC1"+ String(get_buffer(6)));
+    Serial.println("CRC2"+ String(get_buffer(7)));
 }
 
 void display_ping_message(){
@@ -478,10 +574,11 @@ void communication_test() {
 
 void set_active_s(uint8_t pick_this_s) {
   
+  currently_active_s = pick_this_s;
   int led_to_i_mapping[9] = { 4, 5, 6, 7, 0, 1, 2, 3, 999 };  // do not alter, physically linked
   digitalWrite(SHIFT_REG_INPUT, LOW);
   for (uint8_t i = 0; i < 8; i++) {
-    if (i == led_to_i_mapping[pick_this_s]) {
+    if (i == led_to_i_mapping[currently_active_s]) {
       digitalWrite(SHIFT_REG_INPUT, HIGH);
     } else {
       digitalWrite(SHIFT_REG_INPUT, LOW);

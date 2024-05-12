@@ -21,6 +21,7 @@ void setup() {
 uint8_t currently_active_s = 99;
 uint8_t active_s = 4;
 uint8_t num_trials = 1;
+uint8_t enable = 0;
 
 void loop() {
 
@@ -37,8 +38,10 @@ if (num_trials == 2){
 }
 
 void communication() {
-
+if(!enable){
 delay(random(0, 300));
+}
+
 
 ping_test();
 listen_for_ack();
@@ -76,7 +79,7 @@ void listen_for_ack(){
   Serial.println("\n Currently Listening for Ack...");
 
   // set the listen time
-  unsigned long listen_duration = 100;
+  unsigned long listen_duration = 300;
   // Serial.println("\nThe random number is: ");
 
   // check the time to listen
@@ -121,6 +124,32 @@ void listen_for_ack(){
       return;
 
       }
+
+
+      //if the intention is suitable for ping
+      if (incoming_intention == 1){
+        Serial.println("Ping is received");
+        Serial.print("From receiver");
+        Serial.println(currently_active_s);
+        // display ping message
+        display_ping_message();
+
+        // transmit ack message
+
+        //Data ---------------
+        uint8_t x = 5; // 4 bits
+        uint8_t y = 6; // 4 bits
+
+        //SEND MESSAGE -------------
+        send_ack_message(x, y); // x, y, intenion, ID
+
+        Serial.println("Acknowledgement sent");
+
+        // set the mode of operation accordingly
+        mode_of_operation = 4; // if ping is received, change to data listening mode
+        return;
+      }
+
     }
   }
 
@@ -170,7 +199,7 @@ void listen_for_ping_after_capture(){
   Serial.println("\n Currently Listening for Ping...");
 
   // set the listen time
-  unsigned long listen_duration = 150;
+  unsigned long listen_duration = 300;
   // Serial.println("\nThe random number is: ");
 
   // check the time to listen
@@ -222,7 +251,6 @@ void listen_for_ping_after_capture(){
       }
     }
   }
-
 }
 
 void transmit_data(){
@@ -247,7 +275,7 @@ void transmit_data(){
   send_data_message(first_x, first_y); // x, y, data
 
   // set the wait time for ack
-  unsigned long listen_duration = 300;
+  unsigned long listen_duration = 200;
 
   // check the time to wait for ack
   unsigned long start_time = millis() ;
@@ -336,6 +364,7 @@ void listen_for_data_test(){
       if (incoming_intention == 3){
 
         Serial.println("Data is received");
+        enable = 1;
 
         Serial.println("Data is" );
         for(int i = 0; i < 4; i++){
@@ -360,7 +389,7 @@ void listen_for_data_test(){
         Serial.println("Acknowledgement for Data sent");
         mode_of_operation = 0; // change to ping mode
 
-        break;
+        return;
       }
     }
   }
