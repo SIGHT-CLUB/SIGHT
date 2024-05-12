@@ -88,6 +88,11 @@ void listen_for_ack(){
     // listen
     uint8_t listening_result = listen_IR(); //listens for 20ms. 0:no package, 1:successful package, 2:corrupted package
 
+    if (listening_result == 2){
+      Serial.println("\n Corrupted Acknowledgement Received...");
+      Serial.print("From receiver");
+      Serial.println(currently_active_s);      
+    }
     // if smt is received, check it
     if (listening_result == 1){
 
