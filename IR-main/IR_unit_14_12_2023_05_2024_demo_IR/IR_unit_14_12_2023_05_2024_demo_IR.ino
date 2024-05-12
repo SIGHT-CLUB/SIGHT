@@ -15,22 +15,7 @@ void setup() {
 
 void loop() {
   communication_test();
-  // unsigned int start_time;
-  // unsigned int finish_time;
-  // unsigned int duration;
-  // unsigned long TRANSMISSION_START_TIME = 0;
-
-  // start_time = millis();
-  // for (uint16_t i = 0; i<1000; i++){
-  // TRANSMISSION_START_TIME = micros();
-  // digitalWrite(IR_LED, LOW);
-  // delayMicroseconds(TRIGGER_DURATION_US-12);
-  // }
-  // finish_time = millis();
-  // duration = finish_time - start_time;
-  // Serial.println(duration);
 }
-
 
 void communication_test() {
   //To be used in test 1 and test 2
@@ -42,11 +27,12 @@ void communication_test() {
     succesful_package_counter = succesful_package_counter + 1;
   } else if (listening_result == 2) {
     corrupted_package_counter = corrupted_package_counter + 1;
-  } else if (listening_result == 0){
+  } else if (listening_result == 0) {
     //pass (no data is received)
   }
 
   if (Serial.available() > 0) {
+    set_active_s(0);
     int incoming_byte = Serial.read();
     uint16_t number_of_package_bytes = get_number_of_package_bytes();
 
@@ -102,11 +88,9 @@ void communication_test() {
       corrupted_package_counter = 0;
     }
   }
-  
 }
 
 void set_active_s(uint8_t pick_this_s) {
-  
   int led_to_i_mapping[9] = { 4, 5, 6, 7, 0, 1, 2, 3, 999 };  // do not alter, physically linked
   digitalWrite(SHIFT_REG_INPUT, LOW);
   for (uint8_t i = 0; i < 8; i++) {

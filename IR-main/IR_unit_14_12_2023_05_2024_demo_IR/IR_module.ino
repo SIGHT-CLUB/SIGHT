@@ -53,6 +53,7 @@ void transmit_buffer() {
     }
   }
 
+  digitalWrite(IR_LED, LOW);
   //=================
   reverse_buffer();
 }
