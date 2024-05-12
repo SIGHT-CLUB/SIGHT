@@ -577,7 +577,7 @@ void set_active_s(uint8_t pick_this_s) {
   int led_to_i_mapping[9] = { 4, 5, 6, 7, 0, 1, 2, 3, 999 };  // do not alter, physically linked
   digitalWrite(SHIFT_REG_INPUT, LOW);
   for (uint8_t i = 0; i < 8; i++) {
-    if (i == led_to_i_mapping[pick_this_s]) {
+    if (i == led_to_i_mapping[currently_active_s]) {
       digitalWrite(SHIFT_REG_INPUT, HIGH);
     } else {
       digitalWrite(SHIFT_REG_INPUT, LOW);
