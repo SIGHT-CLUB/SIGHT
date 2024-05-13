@@ -10,11 +10,11 @@ void setup() {
   digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
   Serial.begin(115200);
   initialize_IR_module();
-  set_active_s(2);
+  set_active_s(3);
 }
 
 void loop() {
-communication_test();
+  communication_test();
   // unsigned int start_time;
   // unsigned int finish_time;
   // unsigned int duration;
@@ -42,7 +42,7 @@ void communication_test() {
     succesful_package_counter = succesful_package_counter + 1;
   } else if (listening_result == 2) {
     corrupted_package_counter = corrupted_package_counter + 1;
-  } else if (listening_result == 0){
+  } else if (listening_result == 0) {
     //pass (no data is received)
   }
 
@@ -105,7 +105,7 @@ void communication_test() {
 }
 
 void set_active_s(uint8_t pick_this_s) {
-  
+
   int led_to_i_mapping[9] = { 4, 5, 6, 7, 0, 1, 2, 3, 999 };  // do not alter, physically linked
   digitalWrite(SHIFT_REG_INPUT, LOW);
   for (uint8_t i = 0; i < 8; i++) {
