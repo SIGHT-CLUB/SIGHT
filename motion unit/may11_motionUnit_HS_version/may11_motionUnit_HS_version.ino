@@ -337,45 +337,45 @@ void rotate_cw_rfid() {
 
   void turn_left(){
     
-  while(is_black[0] || is_black[1] || is_black[2] || is_black[3] || is_black[4] || is_black[5] || is_black[6] || is_black[7]){
-    
-    Serial.println(get_line_pos());
-    update_black_detections(threshold);
-    rotate_cw();   
-    
-  }
+    while(is_black[0] || is_black[1] || is_black[2] || is_black[3] || is_black[4] || is_black[5] || is_black[6] || is_black[7]){
+      
+      Serial.println(get_line_pos());
+      update_black_detections(threshold);
+      rotate_cw();   
+      
+    }
 
-  while(!(is_black[0])){
-    
-    Serial.println(get_line_pos());
-    update_black_detections(threshold);
-    rotate_cw(); 
+    while(!(is_black[0])){
+      
+      Serial.println(get_line_pos());
+      update_black_detections(threshold);
+      rotate_cw(); 
 
-  }
+    }
 
-  while(!(is_black[1])){
-    
-    Serial.println(get_line_pos());
-    update_black_detections(threshold);
-    rotate_cw(); 
+    while(!(is_black[1])){
+      
+      Serial.println(get_line_pos());
+      update_black_detections(threshold);
+      rotate_cw(); 
 
-  }
+    }
 
-  while(!(is_black[2])){
-    
-    Serial.println(get_line_pos());
-    update_black_detections(threshold);
-    rotate_cw(); 
+    while(!(is_black[2])){
+      
+      Serial.println(get_line_pos());
+      update_black_detections(threshold);
+      rotate_cw(); 
 
-  }
+    }
 
-  while(!(is_black[3])){
-    
-    Serial.println(get_line_pos());
-    update_black_detections(threshold);
-    rotate_cw(); 
+    while(!(is_black[3])){
+      
+      Serial.println(get_line_pos());
+      update_black_detections(threshold);
+      rotate_cw(); 
 
-  }
+    }
 
   }
 
