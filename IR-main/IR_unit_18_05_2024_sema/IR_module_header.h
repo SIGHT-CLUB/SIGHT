@@ -3,10 +3,8 @@
 #ifndef IR_MODULE_H
 #define IR_MODULE_H
 
-#define IR_RECEIVE_PIN 4
-#define SHIFT_REG_INPUT 8
-#define SHIFT_REG_CLK_PIN 9
-#define IR_LED 6
+#define IR_RECEIVE_PIN 3
+#define IR_LED 5
 
 //delayMicroseconds() very accurately in the range 3 microseconds and up to 16383. Be careful if you are not in this range
 #define K_NUMBER_OF_BURSTS 90
@@ -17,7 +15,7 @@
 
 extern uint8_t NUMBER_OF_PACKAGE_BYTES;
 extern unsigned long TRIGGER_DURATION_US;
-extern uint8_t IR_module_buffer[32];
+// extern uint8_t IR_module_buffer[16];
 
 void initialize_IR_module();
 uint16_t get_number_of_package_bytes();

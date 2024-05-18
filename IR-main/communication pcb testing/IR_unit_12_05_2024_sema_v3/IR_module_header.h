@@ -3,10 +3,10 @@
 #ifndef IR_MODULE_H
 #define IR_MODULE_H
 
-#define IR_RECEIVE_PIN 7
+#define IR_RECEIVE_PIN 4
 #define SHIFT_REG_INPUT 8
 #define SHIFT_REG_CLK_PIN 9
-#define IR_LED 10
+#define IR_LED 6
 
 //delayMicroseconds() very accurately in the range 3 microseconds and up to 16383. Be careful if you are not in this range
 #define K_NUMBER_OF_BURSTS 90
