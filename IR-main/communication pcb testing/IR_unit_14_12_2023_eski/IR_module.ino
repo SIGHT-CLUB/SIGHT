@@ -1,6 +1,6 @@
 //Refer to: https://www.ersinelektronik.com/class/INNOVAEditor/assets/Datasheets/TSOP1136.pdf
 
-uint8_t NUMBER_OF_PACKAGE_BYTES = 8;  //cannot be smaller than 3.
+uint8_t NUMBER_OF_PACKAGE_BYTES = 5;  //cannot be smaller than 3.
 unsigned long TRIGGER_DURATION_US = (BURST_HALF_PERIOD_US * 2) * K_NUMBER_OF_BURSTS;
 
 uint8_t IR_module_buffer[32];

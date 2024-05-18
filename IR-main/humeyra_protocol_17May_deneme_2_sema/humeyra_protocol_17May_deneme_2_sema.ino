@@ -18,9 +18,6 @@ uint8_t received_ack_count = 0;
 uint8_t ping_time_out = 0;
 uint8_t ping_timer = millis();
 
-
-
-
 #include "IR_module_header.h";
 
 void setup() {
@@ -83,27 +80,29 @@ void ping_test() {
   
   // Serial.println("\n Pinging the IR module...");
 
-  set_number_of_package_bytes(5); // 1 byte: Location, 1 byte: Intention & ID, 2 bytes: CRC
+  set_number_of_package_bytes(4); // 1 byte: Location, 1 byte: Intention & ID, 1 byte: Target Location, 2 bytes: CRC
 
   //INFO ---------------
   uint8_t x = 7; // 4 bits
   uint8_t y = 2; // 4 bits
-  
+
+  uint8_t target_x = 5; // 4 bits
+  uint8_t target_y = 8; // 4 bits
+
   uint8_t intention = 1; //4 bits
   //uint8_t ID = 5; //4 bits
 
   uint8_t first_byte = x*16 + y; //x and y position of the robot
   uint8_t second_byte = intention*16 + ID; //intention and ID of the robot
+  uint8_t third_byte = target_x*16 + target_y;
 
   //TRANSMIT ---------------
   set_buffer(0, first_byte);
   set_buffer(1, second_byte);
+  set_buffer(2, third_byte);
 
-  uint16_t CRC_16 = generate_CRC_16_bit();
-  uint8_t CRC_SIG = CRC_16 >> 8;
-  uint8_t CRC_LST = CRC_16 % 256;
-  set_buffer(2, CRC_SIG);
-  set_buffer(3, CRC_LST);
+  uint16_t CRC_8 = generate_CRC_8_bit();
+  set_buffer(3, CRC_8);
     
   transmit_buffer(); 
 
@@ -132,6 +131,7 @@ void listen_test(){
       
       uint8_t first_byte = get_buffer(0);
       uint8_t second_byte = get_buffer(1);
+      uint8_t third_byte = get_buffer(2);
 
       uint8_t  x = first_byte >> 4;
       uint8_t  y = first_byte % 16;
@@ -139,7 +139,10 @@ void listen_test(){
       uint8_t  intention = second_byte >> 4;
       uint8_t  ID = second_byte % 16;
 
-      Serial.println("x: " + String(x) + " y: " + String(y) + " intention: " + String(intention) + " ID: " + String(ID) + "\n");
+      uint8_t  target_x = third_byte >> 4;
+      uint8_t  target_y = third_byte % 16;      
+
+      Serial.println("x: " + String(x) + " y: " + String(y) + " intention: " + String(intention) + " ID: " + String(ID) + "target x: " + String(target_x)+ "target y: " + String(target_y)+ "\n");
 
       // Read intention, 1: Request for comm., 2: Acknowledgement, 3: Message
       if(intention == 1){
@@ -258,9 +261,9 @@ void listen_test_3(){
   
   if (listening_result == 1){ // i.e., the message received is succesful
 
-    
     uint8_t first_byte = get_buffer(0);
     uint8_t second_byte = get_buffer(1);
+    uint8_t third_byte = get_buffer(2);
 
     uint8_t  x = first_byte >> 4;
     uint8_t  y = first_byte % 16;
@@ -268,7 +271,11 @@ void listen_test_3(){
     uint8_t  intention = second_byte >> 4;
     uint8_t  ID = second_byte % 16;
 
-    Serial.println("x: " + String(x) + " y: " + String(y) + " intention: " + String(intention) + " ID: " + String(ID) + "\n");
+    uint8_t  target_x = third_byte >> 4;
+    uint8_t  target_y = third_byte % 16;      
+
+    Serial.println("x: " + String(x) + " y: " + String(y) + " intention: " + String(intention) + " ID: " + String(ID) + " target x: " + String(target_x)+ " target y: " + String(target_y)+ "\n");
+
 
     // Read intention, 1: Request for comm., 2: Acknowledgement, 3: Message
     if(intention == 1){
@@ -309,25 +316,26 @@ void send_ping_acknowledgement()
 {
    
 
-  set_number_of_package_bytes(5);
+  set_number_of_package_bytes(4);
 
   //INFO ---------------
   uint8_t x = 7; // 4 bits
   uint8_t y = 4; // 4 bits
   uint8_t intention = 2; //4 bits
+  uint8_t target_x = 5; // 4 bits
+  uint8_t target_y = 8; // 4 bits    
 
   uint8_t first_byte = x*16 + y; //x and y position of the robot
   uint8_t second_byte = intention*16 + ID; //intention and ID of the robot
+  uint8_t third_byte = target_x*16 + target_y; //x and y position of the robot
 
   //TRANSMIT ---------------
   set_buffer(0, first_byte);
   set_buffer(1, second_byte);
+  set_buffer(2, third_byte);
 
-  uint16_t CRC_16 = generate_CRC_16_bit();
-  uint8_t CRC_SIG = CRC_16 >> 8;
-  uint8_t CRC_LST = CRC_16 % 256;
-  set_buffer(2, CRC_SIG);
-  set_buffer(3, CRC_LST);
+  uint16_t CRC_8 = generate_CRC_8_bit();
+  set_buffer(3, CRC_8);
   
   // unsigned int current_time = millis()/1000;
   
@@ -356,11 +364,8 @@ void send_message_acknowledgement()
   set_buffer(0, first_byte);
   set_buffer(1, second_byte);
 
-  uint16_t CRC_16 = generate_CRC_16_bit();
-  uint8_t CRC_SIG = CRC_16 >> 8;
-  uint8_t CRC_LST = CRC_16 % 256;
-  set_buffer(2, CRC_SIG);
-  set_buffer(3, CRC_LST);
+  uint16_t CRC_8 = generate_CRC_8_bit();
+  set_buffer(2, CRC_8);
   
   // unsigned int current_time = millis()/1000;
   
@@ -397,11 +402,8 @@ void send_message_8_bytes()
   set_buffer(4, fifth_byte);
   set_buffer(5, sixth_byte);
 
-  uint16_t CRC_16 = generate_CRC_16_bit();
-  uint8_t CRC_SIG = CRC_16 >> 8;
-  uint8_t CRC_LST = CRC_16 % 256;
-  set_buffer(6, CRC_SIG);
-  set_buffer(7, CRC_LST);
+  uint16_t CRC_8 = generate_CRC_8_bit();
+  set_buffer(6, CRC_8);
   
   // ----------------------------------
 
@@ -434,11 +436,8 @@ void send_message()
   set_buffer(0, first_byte);
   set_buffer(1, second_byte);
 
-  uint16_t CRC_16 = generate_CRC_16_bit();
-  uint8_t CRC_SIG = CRC_16 >> 8;
-  uint8_t CRC_LST = CRC_16 % 256;
-  set_buffer(2, CRC_SIG);
-  set_buffer(3, CRC_LST);
+  uint16_t CRC_8 = generate_CRC_8_bit();
+  set_buffer(2, CRC_8);
   
   // unsigned int current_time = millis()/1000;
   
