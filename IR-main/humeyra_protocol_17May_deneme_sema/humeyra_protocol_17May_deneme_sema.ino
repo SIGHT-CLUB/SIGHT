@@ -11,10 +11,10 @@ unsigned long last_mode_change = 0;
 uint8_t ID = 2; // MU SPECIFIC INFO bits
 uint8_t switching_LED = 0;
 uint8_t loop_iteration_wo_ping_message = 0;
-uint8_t consecutive_ack_messages = 0;
-uint8_t sent_ping_count = 0;
-uint8_t received_ping_count = 0;
-uint8_t received_ack_count = 0;
+// uint8_t consecutive_ack_messages = 0;
+// uint8_t sent_ping_count = 0;
+// uint8_t received_ping_count = 0;
+// uint8_t received_ack_count = 0;
 uint8_t ping_time_out = 0;
 uint8_t ping_timer = millis();
 
@@ -143,9 +143,9 @@ void listen_test_3(){
     // Read intention, 1: Request for comm., 2: Acknowledgement, 3: Message
     if(intention == 1){
 
-      received_ping_count ++;
+      // received_ping_count ++;
       loop_iteration_wo_ping_message = 0;
-      consecutive_ack_messages = 0;
+      // consecutive_ack_messages = 0;
 
       
       Serial.println("Ping PACKAGE is received, sending ping ack");
@@ -164,8 +164,8 @@ void listen_test_3(){
 
       Serial.println("Ping ACKNOWLEDGEMENT is received.");
 
-      consecutive_ack_messages++;
-      received_ack_count++;
+      // consecutive_ack_messages++;
+      // received_ack_count++;
     
       return;
     }
