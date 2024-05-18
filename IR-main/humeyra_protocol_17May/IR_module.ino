@@ -202,6 +202,7 @@ uint8_t listen_IR_Erdem() {
   while (millis() - listen_start_time < LISTEN_DURATION_MS) {
     shift_reg_insert_one();
     for (shift_index = 0; shift_index < 8; shift_index++) {
+      
       if (digitalRead(IR_RECEIVE_PIN) == 1) {
         is_received = 1;
         break;
@@ -241,7 +242,7 @@ uint8_t listen_IR_Erdem() {
       // Serial.println();
       return 1;  //Package is valid. return 1
     } else {
-      // Serial.println("Package corrupted");
+      Serial.println("Package corrupted");
       return 2;  // CRC check is failed. return 2
     }
   }

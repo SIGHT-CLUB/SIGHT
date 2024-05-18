@@ -8,8 +8,18 @@
 
 uint8_t mode_of_operation = 1; //0:listen, 1:ping, 2:ping_acknowledgement & listening for message, 3:sending message, 4:message_acknowledgment, 
 unsigned long last_mode_change = 0;
-uint8_t ID = 1; // MU SPECIFIC INFO bits
+uint8_t ID = 2; // MU SPECIFIC INFO bits
 uint8_t switching_LED = 0;
+uint8_t loop_iteration_wo_ping_message = 0;
+uint8_t consecutive_ack_messages = 0;
+uint8_t sent_ping_count = 0;
+uint8_t received_ping_count = 0;
+uint8_t received_ack_count = 0;
+uint8_t ping_time_out = 0;
+uint8_t ping_timer = millis();
+
+
+
 
 #include "IR_module_header.h";
 
@@ -29,22 +39,41 @@ uint8_t active_s = 3;
 
 void loop() {
 
-active_s = active_s + 1;
-if(active_s == 8){active_s =0;}
+// We do NOT send a ping if we haven't listened to a ping for 3 loops
+if(loop_iteration_wo_ping_message<3 || ping_time_out){
 
-if(active_s == 2){
-  Serial.print("Currently active receiver is: ");
-  Serial.println(active_s);
+  active_s = active_s + 1;
+  if(active_s == 8){active_s =0;}
+  set_active_s(active_s);
+  ping_test();
+
+  // We record the last time we sent a ping
+  ping_timer = millis();
+
+
 }
 
-set_active_s(active_s);
-ping_test();
+if(millis()-ping_timer < 100){
+  ping_time_out = 0;
+}
+// If we haven't been sending pings for 500 ms
+else{ping_time_out = 1;}
 
-// We change the index for active receiver when listening
-// if(active_s == 0){set_active_s(7);}
-// else{set_active_s(active_s);}
+
+if(active_s == 4){
+  // Serial.print("Currently active transmitter is: ");
+  // Serial.println(active_s);
+  // Serial.println("Sent a PING from 4");  
+  Serial.print("LOOP ITERATION COUNT WO PING: ");
+  Serial.println(loop_iteration_wo_ping_message);
+  loop_iteration_wo_ping_message++;
+}
 
 listen_test_3();
+
+
+// Serial.print("Consecutive ack count: ");
+// Serial.println(consecutive_ack_messages);
 
 }
 
@@ -80,92 +109,92 @@ void ping_test() {
 
 }
 
-// void listen_test(){
+void listen_test(){
   
-//   //if (mode_of_operation != 0) // If the mode of operation is NOT listen
-//   //return;
+  //if (mode_of_operation != 0) // If the mode of operation is NOT listen
+  //return;
 
-//   // unsigned long listen_duration = random(500,600);
-//   unsigned long listen_duration = random(200,250);
+  // unsigned long listen_duration = random(500,600);
+  unsigned long listen_duration = random(200,250);
 
 
-//   Serial.println("\n Listening for a ping or ping ack...");
+  Serial.println("\n Listening for a ping or ping ack...");
   
-//   unsigned long start_time = millis();
+  unsigned long start_time = millis();
 
-//   while(millis() - start_time < listen_duration){
+  while(millis() - start_time < listen_duration){
     
-//     // We listen for 20 ms at a time
-//     uint8_t listening_result = listen_IR(); // 0:no package, 1:successful package, 2:corrupted package
+    // We listen for 20 ms at a time
+    uint8_t listening_result = listen_IR(); // 0:no package, 1:successful package, 2:corrupted package
     
     
-//     if (listening_result == 1){ // i.e., the message received is succesful
+    if (listening_result == 1){ // i.e., the message received is succesful
       
-//       uint8_t first_byte = get_buffer(0);
-//       uint8_t second_byte = get_buffer(1);
+      uint8_t first_byte = get_buffer(0);
+      uint8_t second_byte = get_buffer(1);
 
-//       uint8_t  x = first_byte >> 4;
-//       uint8_t  y = first_byte % 16;
+      uint8_t  x = first_byte >> 4;
+      uint8_t  y = first_byte % 16;
 
-//       uint8_t  intention = second_byte >> 4;
-//       uint8_t  ID = second_byte % 16;
+      uint8_t  intention = second_byte >> 4;
+      uint8_t  ID = second_byte % 16;
 
-//       Serial.println("x: " + String(x) + " y: " + String(y) + " intention: " + String(intention) + " ID: " + String(ID) + "\n");
+      Serial.println("x: " + String(x) + " y: " + String(y) + " intention: " + String(intention) + " ID: " + String(ID) + "\n");
 
-//       // Read intention, 1: Request for comm., 2: Acknowledgement, 3: Message
-//       if(intention == 1){
+      // Read intention, 1: Request for comm., 2: Acknowledgement, 3: Message
+      if(intention == 1){
         
-//         Serial.println("Ping package is received");
+        Serial.println("Ping package is received");
 
-//         unsigned long measurement_start = millis();
+        unsigned long measurement_start = millis();
 
-//         mode_of_operation = 2; // 2 corresponds to the listening for the message mode
+        mode_of_operation = 2; // 2 corresponds to the listening for the message mode
         
-//         send_ping_acknowledgement();  
+        send_ping_acknowledgement();  
         
-//         unsigned long measurement_duration = millis() - measurement_start;
-//         // Serial.println("Time it took for ping acknowledgement sending: " + String(measurement_duration));
+        unsigned long measurement_duration = millis() - measurement_start;
+        // Serial.println("Time it took for ping acknowledgement sending: " + String(measurement_duration));
               
-//         // LISTENING TO MESSAGE
-//         set_number_of_package_bytes(4);// Size of message packet is 8 BYTES
-//         uint8_t MESSAGE_RECEIVED = listen_to_message();
-//         set_number_of_package_bytes(4); // Changing back to our regular size
+        // LISTENING TO MESSAGE
+        set_number_of_package_bytes(4);// Size of message packet is 8 BYTES
+        uint8_t MESSAGE_RECEIVED = listen_to_message();
+        set_number_of_package_bytes(4); // Changing back to our regular size
         
-//         if(MESSAGE_RECEIVED){
-//           send_message_acknowledgement();
-//           // delay(20);
-//         }
+        if(MESSAGE_RECEIVED){
+          send_message_acknowledgement();
+          // delay(20);
+        }
         
-//         //Back to pinging
-//         mode_of_operation = 1;
+        //Back to pinging
+        mode_of_operation = 1;
         
-//         return;
-//       }
+        return;
+      }
 
-//       else if(intention == 2){ // Acknowledgement is received
+      else if(intention == 2){ // Acknowledgement is received
 
-//         Serial.println("Ping acknowledgment is received, starting data transmisson.");
-//         mode_of_operation = 3; // message sending mode
+        Serial.println("Ping acknowledgment is received, starting data transmisson.");
+        mode_of_operation = 3; // message sending mode
         
 
-//         set_number_of_package_bytes(4);
-//         send_message();
-//         set_number_of_package_bytes(4);
+        set_number_of_package_bytes(4);
+        send_message();
+        set_number_of_package_bytes(4);
 
 
-//         uint8_t MESSAGE_DELIVERED = listen_for_message_acknowledgement();
+        uint8_t MESSAGE_DELIVERED = listen_for_message_acknowledgement();
     
-//         mode_of_operation = 1; // back to pinging
+        mode_of_operation = 1; // back to pinging
         
-//         return;
-//       }
-//     }
-//   }
+        return;
+      }
+    }
+  }
 
-//   // We switch back to pinging
-//   mode_of_operation = 1;
+  // We switch back to pinging
+  mode_of_operation = 1;
 
-// }
+}
 
 void listen_test_2(){
   
@@ -184,7 +213,8 @@ void listen_test_2(){
     
     
     if (listening_result == 1){ // i.e., the message received is succesful
-      
+
+            
       uint8_t first_byte = get_buffer(0);
       uint8_t second_byte = get_buffer(1);
 
@@ -221,14 +251,13 @@ void listen_test_2(){
 }
 
 void listen_test_3(){
-  
-
-    
+      
   // We listen for 20 ms at a time
   uint8_t listening_result = listen_IR_Erdem(); // 0:no package, 1:successful package, 2:corrupted package
-  
+  if(listening_result == 2){listening_result = listen_IR_Erdem();}
   
   if (listening_result == 1){ // i.e., the message received is succesful
+
     
     uint8_t first_byte = get_buffer(0);
     uint8_t second_byte = get_buffer(1);
@@ -243,14 +272,20 @@ void listen_test_3(){
 
     // Read intention, 1: Request for comm., 2: Acknowledgement, 3: Message
     if(intention == 1){
+
+      received_ping_count ++;
+      loop_iteration_wo_ping_message = 0;
+      consecutive_ack_messages = 0;
+
       
       Serial.println("Ping PACKAGE is received, sending ping ack");
 
       mode_of_operation = 2; // 2 corresponds to the listening for the message mode
       
       send_ping_acknowledgement();  
-      // send_ping_acknowledgement();  
-      // send_ping_acknowledgement();  
+      send_ping_acknowledgement();  
+      // delay(10);
+      // listen_test_3();  
                     
       return;
     }
@@ -258,6 +293,9 @@ void listen_test_3(){
     else if(intention == 2){ // Acknowledgement is received
 
       Serial.println("Ping ACKNOWLEDGEMENT is received.");
+
+      consecutive_ack_messages++;
+      received_ack_count++;
     
       return;
     }
