@@ -26,13 +26,15 @@ void loop() {
 
 set_active_s(active_s);
 //communication_test();
-communication();
+//communication();
 
-if (num_trials == 2){
-  active_s = active_s + 1;
-  num_trials = 1;
-  if (active_s == 8){active_s = 0;}
-} else{num_trials = num_trials + 1;}
+Serial.print("\nListening from receiver ");
+Serial.println(active_s);
+
+just_listen();
+active_s = active_s + 1;
+if (active_s == 8){active_s = 0;}
+
 
 }
 
@@ -65,7 +67,89 @@ void ping_test() {
   mode_of_operation = 2;
 }
 
+void just_listen(){
 
+
+  Serial.println("Currently Listening for Ping or Ack...");
+
+  // set the listen time
+  unsigned long listen_duration = 500;
+  // Serial.println("\nThe random number is: ");
+
+  // check the time to listen
+  unsigned long start_time = millis() ;
+
+  // if the time passed is shorter than the wait time, listen
+  while(millis() - start_time < listen_duration){
+
+    // listen
+    uint8_t listening_result = listen_IR(); //listens for 20ms. 0:no package, 1:successful package, 2:corrupted package
+
+    // if smt is received, check it
+    if (listening_result == 1){
+
+      // check intention
+      uint8_t incoming_first_byte = get_buffer(0);
+      uint8_t incoming_second_byte = get_buffer(1);
+
+      uint8_t  incoming_x = incoming_first_byte >> 4;
+      uint8_t  incoming_y = incoming_first_byte % 16;
+
+      uint8_t  incoming_intention = incoming_second_byte >> 4;
+      uint8_t  incoming_ID = incoming_second_byte % 16;
+
+      // Serial.println("x: " + String(x) + " y: " + String(y) + " intention: " + String(intention) + " ID: " + String(ID));
+      // Serial.println("Something is received");
+
+      //if the intention is suitable for ping
+      if (incoming_intention == 1){
+        Serial.println("Ping is received");
+        Serial.print("From receiver");
+        Serial.println(currently_active_s - 1);
+
+        // display ping message
+        display_ping_message();
+
+        // transmit ack message
+
+        //Data ---------------
+        uint8_t x = 5; // 4 bits
+        uint8_t y = 6; // 4 bits
+
+        //SEND MESSAGE -------------
+        set_active_s(currently_active_s-1);
+        send_ack_message(x, y); // x, y, intenion, ID
+        set_active_s(currently_active_s+1);
+
+        Serial.println("Acknowledgement sent");
+        Serial.print("From transmitter");
+        Serial.println(currently_active_s-1);
+
+        // set the mode of operation accordingly
+        mode_of_operation = 4; // if ping is received, change to data listening mode
+        return;
+      }
+      //if the intention is suitable for ack
+      if (incoming_intention == 2){
+
+      //change the mode to transmit message
+      mode_of_operation = 3;
+      package_count = 0;
+      Serial.println("\n Acknowledgement Received...");
+      Serial.print("From receiver");
+      Serial.println(currently_active_s - 1);
+      return;
+
+      }
+    }
+  }
+
+
+
+
+
+
+}
 void listen_for_ping_or_ack(){
 
   //check the mode of operation
@@ -85,26 +169,26 @@ void listen_for_ping_or_ack(){
   unsigned long listen_start_time = millis();
   uint16_t listen_time = 300;
 
-while (millis()-listen_start_time < listen_time){
-    for (uint8_t i = 0; i < 8; i++) {
-      set_active_s(listen_s);
-      //Serial.print(" Current Receiver :");
-      //Serial.println(currently_active_s);
-      unsigned long shift_start_time = millis();
-      while (millis() - shift_start_time < shift_time){
-        if (digitalRead(IR_RECEIVE_PIN) == 1) {
-          Serial.print("Captured smt from receiver");
-          Serial.println(currently_active_s - 1);
-          listen_for_ping_or_ack_after_capture();
-          is_received = 1;
-          break;
+  while (millis()-listen_start_time < listen_time){
+      for (uint8_t i = 0; i < 8; i++) {
+        set_active_s(listen_s);
+        //Serial.print(" Current Receiver :");
+        //Serial.println(currently_active_s);
+        unsigned long shift_start_time = millis();
+        while (millis() - shift_start_time < shift_time){
+          if (digitalRead(IR_RECEIVE_PIN) == 1) {
+            Serial.print("Captured smt from receiver");
+            Serial.println(currently_active_s - 1);
+            listen_for_ping_or_ack_after_capture();
+            is_received = 1;
+            break;
+          }
         }
+        if (is_received)break;
+        listen_s = listen_s + 1;
+        if (listen_s==8){listen_s = 0;}
       }
-      if (is_received)break;
-      listen_s = listen_s + 1;
-      if (listen_s==8){listen_s = 0;}
-    }
-}
+  }
 
   if (!is_received){mode_of_operation = 0;} //if no ping or ack is received, change to ping mode
 }
