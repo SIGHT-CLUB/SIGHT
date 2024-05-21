@@ -10,7 +10,7 @@ void setup() {
   digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
   Serial.begin(115200);
   initialize_IR_module();
-  set_active_s(2);
+  set_active_s(0);
 }
 
 void loop() {

@@ -3,7 +3,7 @@
 uint8_t NUMBER_OF_PACKAGE_BYTES = 8;  //cannot be smaller than 3.
 unsigned long TRIGGER_DURATION_US = (BURST_HALF_PERIOD_US * 2) * K_NUMBER_OF_BURSTS;
 
-uint8_t IR_module_buffer[8];
+uint8_t IR_module_buffer[32];
 
 void initialize_IR_module() {
   pinMode(IR_RECEIVE_PIN, INPUT);
@@ -115,8 +115,8 @@ uint8_t listen_IR() {
     uint8_t CRC_LST = CRC_16 % 256;
     if (IR_module_buffer[NUMBER_OF_PACKAGE_BYTES - 1] == CRC_LST && IR_module_buffer[NUMBER_OF_PACKAGE_BYTES - 2] == CRC_SIG) {
       for (uint8_t i = 0; i < NUMBER_OF_PACKAGE_BYTES; i++) {
-        Serial.print(IR_module_buffer[i]);
-        Serial.print(' ');
+        // Serial.print(IR_module_buffer[i]);
+        // Serial.print(' ');
       }
       Serial.println();
       return 1;  //Package is valid. return 1
@@ -128,6 +128,26 @@ uint8_t listen_IR() {
 
   return 0;  // No signal is detected. return 0
 }
+
+// uint8_t listen_IR_for_ping_begin() {
+//   digitalWrite(IR_LED, LOW);
+
+//   unsigned long listen_start_time = millis();
+//   uint8_t is_received = 0;
+
+//   zero_shift_register();
+//   while (millis() - listen_start_time < LISTEN_DURATION_MS) {
+//     shift_reg_insert_one();
+//     for (uint8_t i = 0; i < 8; i++) {
+//       if (digitalRead(IR_RECEIVE_PIN) == 1) {
+//         is_received = 1;
+//         break;
+//       }
+//       shift_reg_insert_zero();
+//     }
+//     if (is_received)break;
+//   }
+// }
 
 //MAGICAL CRC_16 MODBUS code.
 uint16_t generate_CRC_16_bit() {
@@ -148,4 +168,118 @@ uint16_t CRC_16_bit_for_1BYTE(uint16_t data, uint16_t last_data) {
     if (should_XOR) data = data ^ key;
   }
   return data;
+}
+
+
+void set_active_s(uint8_t pick_this_s) {
+  
+  int led_to_i_mapping[9] = { 4, 5, 6, 7, 0, 1, 2, 3, 999 };  // do not alter, physically linked
+  digitalWrite(SHIFT_REG_INPUT, LOW);
+  for (uint8_t i = 0; i < 8; i++) {
+    if (i == led_to_i_mapping[pick_this_s]) {
+      digitalWrite(SHIFT_REG_INPUT, HIGH);
+    } else {
+      digitalWrite(SHIFT_REG_INPUT, LOW);
+    }
+    delayMicroseconds(5);
+
+    digitalWrite(SHIFT_REG_CLK_PIN, LOW);
+    delayMicroseconds(25);
+    digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
+    delayMicroseconds(25);
+  }
+}
+
+
+uint8_t listen_IR_Erdem() {
+  digitalWrite(IR_LED, LOW);
+
+  unsigned long listen_start_time = millis();
+  uint8_t is_received = 0;
+
+  uint8_t shift_index = 0;
+  zero_shift_register();
+  while (millis() - listen_start_time < LISTEN_DURATION_MS) {
+    shift_reg_insert_one();
+    for (shift_index = 0; shift_index < 8; shift_index++) {
+      
+      if (digitalRead(IR_RECEIVE_PIN) == 1) {
+        is_received = 1;
+        break;
+      }
+      shift_reg_insert_zero();
+    }
+    if (is_received)break;
+  }
+
+  //check if transmission is detected
+  if (is_received == 1) {
+    delayMicroseconds(TRIGGER_DURATION_US * 1.5);
+    unsigned long listen_starts = micros();
+    for (uint8_t i = 0; i < (NUMBER_OF_PACKAGE_BYTES * 8); i++) {
+      uint8_t byte_no = i / 8;
+      uint8_t read_bit = digitalRead(IR_RECEIVE_PIN);
+      if (read_bit == 1) {
+        read_bit = 0;
+      } else {
+        read_bit = 1;
+      }
+      IR_module_buffer[byte_no] = (IR_module_buffer[byte_no] << 1) + read_bit;
+      while (micros() < listen_starts + (i + 1) * TRIGGER_DURATION_US) {
+        continue;
+      }
+    }
+
+    uint16_t CRC_16 = generate_CRC_16_bit();
+    uint8_t CRC_SIG = CRC_16 >> 8;
+    uint8_t CRC_LST = CRC_16 % 256;
+    if (IR_module_buffer[NUMBER_OF_PACKAGE_BYTES - 1] == CRC_LST && IR_module_buffer[NUMBER_OF_PACKAGE_BYTES - 2] == CRC_SIG) {
+      // Serial.print(String(shift_index)+" -> ");
+      for (uint8_t i = 0; i < NUMBER_OF_PACKAGE_BYTES; i++) {
+        Serial.print(IR_module_buffer[i]);
+        Serial.print(' ');
+      }
+      // Serial.println();
+      return 1;  //Package is valid. return 1
+    } else {
+      Serial.println("Package corrupted");
+      return 2;  // CRC check is failed. return 2
+    }
+  }
+
+  return 0;  // No signal is detected. return 0
+}
+
+void shift_reg_insert_zero() {
+  PORTB = PORTB & B11111110; //define SHIFT_REG_INPUT 8 (portb-0)->LOW
+  //digitalWrite(SHIFT_REG_INPUT, LOW);
+  delayMicroseconds(1);
+
+  PORTB = PORTB & B11111101; //#define SHIFT_REG_CLK_PIN 9 (portb-1)->LOW
+  //digitalWrite(SHIFT_REG_CLK_PIN, LOW);
+  delayMicroseconds(1);
+
+  PORTB = PORTB | B00000010; //#define SHIFT_REG_CLK_PIN 9 (portb-1)->HIGH
+  //digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
+  delayMicroseconds(1);
+}
+
+void shift_reg_insert_one() {
+  PORTB = PORTB | B00000001; //define SHIFT_REG_INPUT 8 (portb-0)->HIGH
+  //digitalWrite(SHIFT_REG_INPUT, LOW);
+  delayMicroseconds(1);
+
+  PORTB = PORTB & B11111101; //#define SHIFT_REG_CLK_PIN 9 (portb-1)->LOW
+  //digitalWrite(SHIFT_REG_CLK_PIN, LOW);
+  delayMicroseconds(1);
+
+  PORTB = PORTB | B00000010; //#define SHIFT_REG_CLK_PIN 9 (portb-1)->HIGH
+  //digitalWrite(SHIFT_REG_CLK_PIN, HIGH);
+  delayMicroseconds(1);
+}
+
+void zero_shift_register() {
+  for (uint8_t i = 0; i < 8; i++) {
+    shift_reg_insert_zero();
+  }
 }
