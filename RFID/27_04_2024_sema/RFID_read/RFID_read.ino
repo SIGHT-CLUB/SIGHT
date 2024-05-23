@@ -1,7 +1,7 @@
 #include <SPI.h>
 #include <MFRC522.h>
 
-#define RST_PIN 9
+#define RST_PIN 3
 #define SS_PIN 10
 
 MFRC522 rfid(SS_PIN, RST_PIN);
@@ -19,7 +19,7 @@ void loop() {
     return;
   }
 
-  byte block = 13;
+  byte block = 14;
   byte buffer[18];
   byte size = sizeof(buffer);
 
@@ -38,11 +38,12 @@ void loop() {
     Serial.print(buffer[0]);
     Serial.print(",");
     Serial.print(buffer[1]);
-    Serial.print(") to (");
-    Serial.print(buffer[2]);
-    Serial.print(",");
-    Serial.print(buffer[3]);
     Serial.println(")");
+    // Serial.print(") to (");
+    // Serial.print(buffer[2]);
+    // Serial.print(",");
+    // Serial.print(buffer[3]);
+    // Serial.println(")");
   }
 
   rfid.PICC_HaltA();

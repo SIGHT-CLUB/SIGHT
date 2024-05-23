@@ -1,18 +1,15 @@
 #include <SPI.h>
 #include <MFRC522.h>
 
-#define RST_PIN 9
+#define RST_PIN 3
 #define SS_PIN 10
 #define TALK_PIN 8
-#define ISRESET_PIN 3
+
 
 MFRC522 rfid(SS_PIN, RST_PIN);
 
 void setup() {
   pinMode(ISRESET_PIN, OUTPUT);
-  digitalWrite(ISRESET_PIN, HIGH);
-  delay(2000);
-  digitalWrite(ISRESET_PIN, LOW);
   pinMode(TALK_PIN, OUTPUT);
   digitalWrite(TALK_PIN, LOW);
   Serial.begin(9600);

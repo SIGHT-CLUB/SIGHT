@@ -1,14 +1,14 @@
 #include <SPI.h>
 #include <MFRC522.h>
 
-#define RST_PIN 9
+#define RST_PIN 3
 #define SS_PIN 10
 
 MFRC522 rfid(SS_PIN, RST_PIN);
 byte block = 14;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   SPI.begin();
   rfid.PCD_Init();
   Serial.println("Place the card to the reader...");
